@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% load bootstrap %}
+{% load crispy_forms_tags %}
+
+{% block title %}取引先の編集{% endblock title %}
+
+{% block content %}
+    <h3 class="page-header">取引先の編集</h3>
+    {% if partner_id %}
+    <form action="{% url 'account:partner_mod' partner_id=partner_id %}" method="post" class="form-horizontal" role="form">
+    {% else %}
+    <form action="{% url 'account:partner_add' %}" method="post" class="form-horizontal" role="form">
+    {% endif %}
+      {% csrf_token %}
+      <!--{{ form|crispy }}-->
+      {% crispy form %}
+      
+	  <div class="form-group">
+	      <div class="col-sm-offset-2 col-sm-10" style="margin-left:-10px" >
+          <!--<button type="submit" class="btn btn-primary" >登録</button> this is not work -->
+          <a href="{% url 'account:partner_list' %}" class="btn btn-default btn-sm">戻る</a>
+		</div>
+		
+		
+       </div>
+    </form> 
+    
+<script type="text/javascript" >
+   
+   
+   $(document).on('ready page:load', function(){
+     
+     //勘定科目のselect2設定
+     $("#account_title_select").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+     //select2をenterキー押下した場合(リストが閉じられた時)のタブ移動。
+     $( "#account_title_select" ).on("select2:close", function (e) {
+       $('[tabindex=4]').focus(); 
+     });
+     
+     //銀行のselect2設定
+     $("#bank_select").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+     $( "#bank_select" ).change(function(e) {
+       var bank_id = $(this)[0].value;
+       
+       //ajax call 
+       $.ajax({
+            url: "{% url 'account:bank_branch_extract' %}", 
+            type: 'GET',
+            dataType: 'json',
+            data:{
+                'bank_id': bank_id,
+            },
+            success:function(data){
+                //select2を一旦クリアする
+                $("#bank_branch_select").empty().trigger('change')
+                
+                //select2へデータをセットする（もっとスマートな方法があるかも・・）
+                for(let i = 0; i < data.HTTPRESPONSE.length; i++) {
+                  var newOption = new Option(data.HTTPRESPONSE[i].name, data.HTTPRESPONSE[i].id, true, true);
+                  $("#bank_branch_select").append(newOption).trigger('change');
+                }
+            },
+       });
+     });
+     //select2をenterキー押下した場合(リストが閉じられた時)のタブ移動。
+     $( "#bank_select" ).on("select2:close", function (e) {
+       $('[tabindex=9]').focus(); 
+     });
+    
+     $("#bank_branch_select").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+     //select2をenterキー押下した場合(リストが閉じられた時)のタブ移動。
+     $( "#bank_branch_select" ).on("select2:close", function (e) {
+       $('[tabindex=10]').focus(); 
+     });
+   });
+
+   // using jQuery
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie != '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = jQuery.trim(cookies[i]);
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+var csrftoken = getCookie('csrftoken');
+
+function csrfSafeMethod(method) {
+    // these HTTP methods do not require CSRF protection
+    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+}
+$.ajaxSetup({
+    crossDomain: false, // obviates need for sameOrigin test
+    beforeSend: function(xhr, settings) {
+        if (!csrfSafeMethod(settings.type)) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        }
+    }
+});
+
+
+</script>
+
+{% endblock content %}

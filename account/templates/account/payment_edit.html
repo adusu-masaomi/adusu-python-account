@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% load bootstrap %}
+
+{% block title %}支払の編集{% endblock title %}
+
+{% block content %}
+    <h3 class="page-header">支払の編集</h3>
+    {% if payment_id %}
+    <form action="{% url 'account:payment_mod' payment_id=payment_id %}" method="post" class="form-horizontal" role="form">
+    {% else %}
+    <form action="{% url 'account:payment_add' %}" method="post" class="form-horizontal" role="form">
+    {% endif %}
+      {% csrf_token %}
+      {{ form|bootstrap_horizontal }}
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-10">
+          <button type="submit" class="btn btn-primary">登録</button>
+        </div>
+      </div>
+    </form>
+    
+    <form action="{% url 'account:payment_list' %}" type="get">
+  	  <input type="submit" value="戻る" class="btn btn-default">
+      <div style="display:none">
+		{{ form }}
+        <input type='hidden' name='dummy' value={{'1'}}
+		{% csrf_token %}
+	  </div>
+    </form>
+    
+<script type="text/javascript" >
+  
+  $(document).on('ready page:load', function(){
+    
+    //取引先のselect2設定
+    $("#partner_select").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+    //select2をenterキー押下した場合(リストが閉じられた時)のタブ移動。
+    $( "#partner_select" ).on("select2:close", function (e) {
+      $('[tabindex=3]').focus(); 
+    });
+    
+    //勘定科目のselect2設定
+    $("#account_title_select").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+    //select2をenterキー押下した場合(リストが閉じられた時)のタブ移動。
+    $( "#account_title_select" ).on("select2:close", function (e) {
+      $('[tabindex=4]').focus(); 
+    });
+    
+    //請求日の登録後は、１日の日付が入っているので、削り取る。
+    var strDate = $( ".datepicker_1" )[0].value;
+    if  (strDate != ""){
+      if (strDate.length == 10){
+        var strYearMonth = strDate.substr(0, 7);
+        $( ".datepicker_1" )[0].value = strYearMonth;
+      }
+    }
+    //
+    
+    //datepickerの設定
+    var dateFormatMonth = 'yy-mm';
+    var dateFormatNormal = 'yy-mm-dd';
+    
+    $.datepicker.setDefaults( $.datepicker.regional[ "ja" ] );
+    
+    //請求〆日のdatepicker
+    $('#billing_year_month_picker').datepicker({
+      dateFormat: dateFormatMonth,
+      //カレンダーを開いた時、入力値の状態にさせる処理
+      beforeShow: function (dateText, inst) { 
+        dateText = document.getElementById("billing_year_month_picker").value;
+        if (dateText.length == 7){
+          dateText += "-01";
+        }
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
+      },
+      //
+      //保存した時、日付に１を自動セットさせる
+      onClose: function(dateText, inst) { 
+        $(this).datepicker('setDate', new Date(inst.selectedYear, inst.selectedMonth, 1));
+        //次のコントロールへフォーカスを移す
+        $('[tabindex=1]').focus(); 
+      }
+      // You can put more options here.
+    });
+    //
+    //支払予定日のdatepicker
+     $('#payment_due_date_picker').datepicker({
+      dateFormat: dateFormatNormal,
+      //カレンダーを開いた時、入力値の状態にさせる処理
+      beforeShow: function (dateText, inst) { 
+        dateText = document.getElementById("payment_due_date_picker").value;
+        //if (dateText.length == 7){
+        //  dateText += "-01";
+        //}
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
+      },
+      onClose: function(dateText, inst) { 
+        //次のコントロールへフォーカスを移す
+        $('[tabindex=8]').focus(); 
+      }
+      // You can put more options here.
+    });
+    //
+    //支払日のdatepicker
+     $('#payment_date_picker').datepicker({
+      dateFormat: dateFormatNormal,
+      //カレンダーを開いた時、入力値の状態にさせる処理
+      beforeShow: function (dateText, inst) { 
+        dateText = document.getElementById("payment_date_picker").value;
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
+      },
+      // You can put more options here.
+    });
+    
+    
+    //ENTER→TABキーに変換する処理。
+    //$('[tabindex]').keydown(function (e) {
+    //  if (e.keyCode == 13 || e.keyCode == 9) {
+        
+    //	var tabindex = parseInt($(this).attr('tabindex'));
+    //    $('[tabindex='+(tabindex+1)+']').focus();
+        
+    //    return false;
+    //  }
+    
+    //});
+    
+    //
+  });
+  
+ 
+</script>
+
+
+
+
+{% endblock content %}
