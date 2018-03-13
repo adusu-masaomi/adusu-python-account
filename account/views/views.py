@@ -1,9 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
-#from django.core.urlresolvers import reverse
 
 # Create your views here.
-#from django.http import HttpResponse
-#
 from account.models import Partner
 from account.models import Account_Title
 from account.models import Bank
@@ -24,16 +21,21 @@ from django.db.models import Sum
 from django.http import Http404, HttpResponse, QueryDict
 from django.template import RequestContext
 
-#レポート関連
-#from reportlab.pdfgen import canvas
-#from reportlab.lib.pagesizes import A4, landscape, portrait
-#from reportlab.pdfbase import pdfmetrics
-#from reportlab.pdfbase.cidfonts import UnicodeCIDFont
-#from reportlab.pdfbase.pdfmetrics import registerFont
-#from reportlab.pdfbase.ttfonts import TTFont
-#from reportlab.lib.units import mm
-#from django.conf import settings
-#from datetime import datetime
+#ログイン用
+#from __future__ import unicode_literals
+from django.utils.encoding import python_2_unicode_compatible
+from django.views.generic import View
+from django.shortcuts import render
+from django.utils.decorators import method_decorator
+from django.contrib.auth.decorators import login_required
+#
+
+#ログイン用
+@python_2_unicode_compatible
+class Index(View):
+    @method_decorator(login_required)
+    def get(self, request):
+        return render(request, 'account/index.html')
 
 def index(request):
     
@@ -137,8 +139,9 @@ def payment_list(request, number=None):
         
         search_query_trade_division_id = request.GET.get('q', None)
         search_query_month = request.GET.get('q_month', None)
+        search_query_payment = request.GET.get('q_payment', None)
         
-        #キャッシュに保存された検索結果をセット
+        #キャッシュに保存された検索結果をセット(年月のみ)
         if search_query_trade_division_id == None:
             search_query_trade_division_id = cache.get('search_query_trade_division_id')
             
@@ -151,27 +154,36 @@ def payment_list(request, number=None):
         cache.set('search_query_month', search_query_month, 86400)
         #
         
+        ###フィルタリング
+        results = None
+        search_flag = False
         
-        if search_query_trade_division_id:
-            if search_query_month:
-                #取引区分＆支払月で検索
-                #◯月１日で検索するようにする
-                search_query_month += "-01"
-                results = Payment.objects.all().filter(trade_division_id__icontains=search_query_trade_division_id, billing_year_month=search_query_month)
-            else:
-                #取引区分で検索
-                results = Payment.objects.all().filter(trade_division_id__icontains=search_query_trade_division_id)
-        elif search_query_month:
-        #支払月のみで検索
+        if search_query_month:
+        #年月で絞り込み
+            search_flag = True
             #◯月１日で検索するようにする
             search_query_month += "-01"
             results = Payment.objects.all().filter(billing_year_month=search_query_month)
-        else:
-            return render(request,
-                'account/payment_list.html',     # 使用するテンプレート
-                {'payments': payments})         # テンプレートに渡すデータ
         
-        if (search_query_trade_division_id or search_query_month):
+        if search_query_trade_division_id:
+        #取引区分で絞り込み
+            search_flag = True
+            if results is None:
+                results = Payment.objects.all().filter(trade_division_id__icontains=search_query_trade_division_id)
+            else:
+                results = results.filter(trade_division_id__icontains=search_query_trade_division_id)
+        
+        if search_query_payment:
+        #支払方法で絞り込み
+            search_flag = True
+            if results is None:
+                results = Payment.objects.all().filter(payment_method_id__icontains=search_query_payment)
+            else:
+                results = results.filter(payment_method_id__icontains=search_query_payment)
+        ###
+        
+        #if (search_query_trade_division_id or search_query_month):
+        if search_flag == True:
         #検索クエリーが入力されている場合のみ
             #合計金額
             total_price = results.aggregate(Sum('billing_amount'))
@@ -179,12 +191,12 @@ def payment_list(request, number=None):
             return render(request,
                 'account/payment_list.html',     # 使用するテンプレート
                 {'payments': results, 'total_price': total_price})         # テンプレートに渡すデータ
+        else:
+            return render(request,
+                'account/payment_list.html',     # 使用するテンプレート
+                {'payments': payments})         # テンプレートに渡すデータ
         
-    # Your code
-    #return render(request,
-    #              'account/payment_list.html',     # 使用するテンプレート
-    #              {'payments': payments})         # テンプレートに渡すデータ
-
+    
 #ノーマルな雛形(事前Import必要)
 #def xxx_list(request):
 #    """xxxの一覧"""
@@ -331,74 +343,6 @@ def payment_del(request, payment_id):
     payment = get_object_or_404(Payment, pk=payment_id)
     payment.delete()
     return redirect('account:payment_list')
-
-# Ajax
-#銀行から支店を絞り込む
-def ajax_bank_branch_extract(req):   
-    import json
-    from django.http import HttpResponse,Http404
-
-    if req.method == 'GET':
-        bank_id = req.GET['bank_id']  # GETデータを取得して
-        
-        #response = [{'name': '', 'id': ''}
-        empty_value = {'id':"" , 'name':"" }
-        
-        response = Bank_Branch.objects.all().filter(bank_id__exact=bank_id).values("id","name")
-        
-        #response.update(filter)
-        #response["dict"] = empty_value
-        
-        #response = list(response)
-        response = list(chain(empty_value,response))
-        
-        #import pdb; pdb.set_trace()
-        
-        json_data = json.dumps({"HTTPRESPONSE":response})   # JSON形式に直す
-        return HttpResponse(json_data, content_type="application/json")
-    else:
-        raise Http404  # GETリクエストを404扱いにしているが、実際は別にしなくてもいいかも
-
-#テンプレートのソート用（取引先）
-def ajax_partner_sort(request):
-
-    if request.method == 'POST':
-
-        # request.POST['content'] is a query string like 'entry[]=3&entry[]=2&entry[]=1'
-        # convert to a QueryDict so we can do things with it
-        partners = QueryDict(request.POST['content'])
-       
-        for index, partner_id in enumerate(partners.getlist('partner[]')):
-            # save index of entry_id as it's new order value
-            partner = Partner.objects.get(id=partner_id)
-            partner.order = index
-            partner.save()
-            
-    #２つのリストのソートを行うやり方（使えるかも？しれないので残しておく）
-    # split our entries arbitrarily, so we can have two lists on the page...
-    #entry_list1 = Partner.objects.order_by('order')[:2]
-    #entry_list2 = Partner.objects.order_by('order')[2:]
-    #context = {'entry_list1': entry_list1, 'entry_list2': entry_list2}
-    #return render_to_response('account/partner_list.html', context, context_instance=RequestContext(request))
-    
-    return render(request, 'account/partner_list.html')
-
-#テンプレートのソート用（支払先）
-def ajax_payment_sort(request):
-
-    if request.method == 'POST':
-
-        # request.POST['content'] is a query string like 'entry[]=3&entry[]=2&entry[]=1'
-        # convert to a QueryDict so we can do things with it
-        payments = QueryDict(request.POST['content'])
-       
-        for index, payment_id in enumerate(payments.getlist('payment[]')):
-            # save index of entry_id as it's new order value
-            payment = Payment.objects.get(id=payment_id)
-            payment.order = index
-            payment.save()
-            
-    return render(request, 'account/payment_list.html')
 
 
 #検索フォーム用・・・

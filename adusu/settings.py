@@ -17,6 +17,12 @@ install_as_MySQLdb()
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+#ログイン用
+LOGIN_ERROR_URL = '/account/login'
+LOGIN_URL = '/account/login/'
+LOGIN_REDIRECT_URL = '/account/index/'
+AUTH_USER_MODEL = 'account.AuthUser'
+#
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/

@@ -12,7 +12,6 @@ table {
 
 {% block content %}
     <h3 class="page-header">勘定科目の一覧</h3>
-    <a href="{% url 'account:account_title_add' %}" class="btn btn-primary ">新規作成</a>
     
     <form type="get" action="" style="margin: 0">
       <label for="searchbox">勘定科目名:</label>
@@ -21,25 +20,37 @@ table {
       <label for="id_trade">取引区分:</label>
       <select  class="django-select2" id="id_trade" style="width:200px;"  name="q_trade" value="{{ request.GET.q_trade }}" data-minimum-input-length="0">
         <option value=""></option>
-        <option value="0">経費</option>
-        <option value="1">外注・工事仕入</option>
+        <option value="0">外注・工事仕入</option>
+        <option value="1">経費</option>
       </select>
       
       <button id="search_submit" type="submit" >検索</button>
     </form>
-
-    <table class="table table-striped table-bordered">
+    
+    <a href="{% url 'account:account_title_add' %}" class="btn btn-primary ">新規作成</a>
+    
+<!--見出し固定用設定追加→フレシキブル画面が損なわれるので保留中-->
+<!--<div style="margin-top : -0px;", class="span11 table-scrollable" >-->
+ 
+  <!--<style>
+   table { }
+   table th, table td { white-space:nowrap; overflow:hidden; }
+  </style>-->
+  
+    <table id="tablefix",  class="table table-striped table-bordered">
       <thead>
         <tr>
           <th>ID</th>
+          <th>順</th>
           <th>勘定科目名</th>
           <th>取引区分</th>
         </tr>
       </thead>
-      <tbody>
-        {% for account_title in account_titles %}
-        <tr>
+      <tbody id="sortable" class="connectedSortable">
+        {% for account_title in account_titles|dictsort:"order" %}
+        <tr id="account_title_{{ account_title.id }}">
           <td>{{ account_title.id }}</td>
+          <td>{{ account_title.order }}</td>
           <td>{{ account_title.name }}</td>
 		  <td>{{ account_title.trade_division_verbose }}</td>
           <td>
@@ -52,6 +63,7 @@ table {
         {% endfor %}
       </tbody>
     </table>
+</div>
 	{# 削除を確認するモーダル ダイアログ #}
   <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -74,6 +86,34 @@ table {
   
   $(document).on('ready page:load', function(){
      $("#id_trade").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+     
+     //ソート用
+     $("#sortable").sortable({
+       connectWith: ".connectedSortable",
+       update: function(event, ui) {
+         var serial = $('#sortable').sortable('serialize');
+         $.ajax({
+           url: "{% url 'account:account_title_sort' %}",
+           type: "post",
+           data: { 'content': serial, 'csrfmiddlewaretoken' : '{{ csrf_token }}' } 
+         });
+       },
+     }).disableSelection();
+     
+     //見出し固定用設定
+	 var sz = window.parent.screen.width;
+	 var fc = 1;    //デフォルトの固定列数(社長PC基準)
+	 var ht = 610;  //デフォルトの高さ(社長PC基準)
+	 
+	 if (sz != 1920) {
+	 //画面サイズ1920px(社長PC基準)以外は、列固定させる。
+        fc = 1;  //固定列数
+		ht -= 70;
+		sz -= 0;
+	 }
+     //フレシキブル画面が損なわれるので保留中・・・
+	 //$('#tablefix').tablefix({width: sz, height: ht, fixRows: 1, fixCols: fc});
+     //
   });
 
   

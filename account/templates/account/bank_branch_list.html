@@ -18,14 +18,16 @@ table {
       <thead>
         <tr>
           <th>ID</th>
+          <th>順</th>
           <th>銀行名</th>
           <th>銀行支店名</th>
         </tr>
       </thead>
-      <tbody>
-        {% for bank_branch in bank_branchs %}
-        <tr>
+      <tbody id="sortable" class="connectedSortable">
+        {% for bank_branch in bank_branchs|dictsort:"order" %}
+        <tr id="bank_branch_{{ bank_branch.id }}">
           <td>{{ bank_branch.id }}</td>
+          <td>{{ bank_branch.order }}</td>
           <td>{{ bank_branch.bank }}</td>
           <td>{{ bank_branch.name }}</td>
 		  <td>
@@ -59,7 +61,18 @@ table {
 <script>
   
   $(document).on('ready page:load', function(){
-  
+     //ソート用
+     $("#sortable").sortable({
+       connectWith: ".connectedSortable",
+       update: function(event, ui) {
+         var serial = $('#sortable').sortable('serialize');
+         $.ajax({
+           url: "{% url 'account:bank_branch_sort' %}",
+           type: "post",
+           data: { 'content': serial, 'csrfmiddlewaretoken' : '{{ csrf_token }}' } 
+         });
+       },
+     }).disableSelection();
   });
 
   

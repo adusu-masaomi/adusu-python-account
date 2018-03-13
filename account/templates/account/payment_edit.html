@@ -30,6 +30,9 @@
     
 <script type="text/javascript" >
   
+  //あとで共通化？
+  PAYMENT_METHOD_TRANSFER = 1;
+  
   $(document).on('ready page:load', function(){
     
     //取引先のselect2設定
@@ -137,6 +140,13 @@
     //
   });
   
+  //支払金額を概算へコピーする(振込以外)
+  function setAmount(){
+    
+    if (document.getElementById("payment_method_id").value != PAYMENT_METHOD_TRANSFER){
+      document.getElementById("rough_estimate").value = document.getElementById("billing_amount").value;
+    }
+  }
  
 </script>
 

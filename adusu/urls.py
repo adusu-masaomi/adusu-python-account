@@ -19,8 +19,15 @@ from account import views #←追加
 #import account
 from django.conf import settings
 
+#画面認証用
+from django.contrib.auth.views import login, logout_then_login
+from account.views.views import Index
+
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
+    url(r'^account/login/$', login, {'template_name': 'account/login.html'}, name='login'),
+    url(r'^account/logout/$', logout_then_login, name='logout'),
+    url(r'^account/index/$', Index.as_view(), name='account_index'),
     url(r'^adusu/index', views.views.index),  #←追加
     url(r'^account/', include('account.urls', namespace='account')),
     #url(r'^select2/', include('django_select2.urls')),

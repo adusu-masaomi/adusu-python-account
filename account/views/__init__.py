@@ -1,2 +1,4 @@
 import account.views.views
-import account.views.payment_list_pdf
+import account.views.ajaxs
+import account.views.pdf_payment_list
+import account.views.data_transfer

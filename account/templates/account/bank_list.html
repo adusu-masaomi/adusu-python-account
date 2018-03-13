@@ -18,13 +18,15 @@ table {
       <thead>
         <tr>
           <th>ID</th>
+          <th>順</th>
           <th>銀行名</th>
         </tr>
       </thead>
-      <tbody>
-        {% for bank in banks %}
-        <tr>
+      <tbody id="sortable" class="connectedSortable">
+        {% for bank in banks|dictsort:"order" %}
+        <tr id="bank_{{ bank.id }}">
           <td>{{ bank.id }}</td>
+          <td>{{ bank.order }}</td>
           <td>{{ bank.name }}</td>
 		  <td>
             <a href="{% url 'account:bank_mod' bank_id=bank.id %}" class="btn btn-default btn-sm">編集</a>
@@ -57,7 +59,18 @@ table {
 <script>
   
   $(document).on('ready page:load', function(){
-  
+     //ソート用
+     $("#sortable").sortable({
+       connectWith: ".connectedSortable",
+       update: function(event, ui) {
+         var serial = $('#sortable').sortable('serialize');
+         $.ajax({
+           url: "{% url 'account:bank_sort' %}",
+           type: "post",
+           data: { 'content': serial, 'csrfmiddlewaretoken' : '{{ csrf_token }}' } 
+         });
+       },
+     }).disableSelection();
   });
 
   

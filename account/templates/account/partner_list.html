@@ -20,8 +20,8 @@ table {
       <select  class="django-select2" id="id_trade" style="width:200px;"  name="q" value="{{ request.GET.q }}" data-minimum-input-length="0">
         <!--<option value="">-- どれか一つを選んで下さい。 --</option>-->
         <option value=""></option>
-        <option value="0">経費</option>
-        <option value="1">外注・工事仕入</option>
+        <option value="0">外注・工事仕入</option>
+        <option value="1">経費</option>
         
         <!--DBから持ってくる場合-->
         <!--{% for partner in partners %}-->
@@ -42,6 +42,7 @@ table {
           <th>取引先名(管理用)</th>
           <!--<th>取引先名</th>-->
           <th>取引区分</th>
+          <th>科目</th>
           <th>概算</th>
           <th>固定費</th>
           <th>支払方法</th>
@@ -51,7 +52,7 @@ table {
           <th>口座番号</th>
         </tr>
       </thead>
-      <tbody id="sortable" class="connectedSortable" style="font-size : 14px;">
+      <tbody id="sortable" class="connectedSortable" style="font-size : 12px;">
         {% for partner in partners|dictsort:"order" %}
         <tr id="partner_{{ partner.id }}">
           <td>{{ partner.id }}</td>
@@ -59,6 +60,7 @@ table {
           <td>{{ partner.administrative_name }}</td>
           <!--<td>{{ partner.name }}</td>-->
           <td>{{ partner.trade_division_verbose }}</td>
+          <td>{{ partner.account_title|default_if_none:EMPTY_MARK }}</td>
           {% if partner.rough_estimate != null %}
             <td align="right">￥{{ partner.rough_estimate| intcomma:False }}</td>
           {% else %}

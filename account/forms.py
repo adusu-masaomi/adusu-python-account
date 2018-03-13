@@ -36,6 +36,7 @@ class PartnerForm(forms.ModelForm):
         #支払科目
         self.fields['account_title'].widget.attrs['style'] = 'width:150px; height:40px;'
         self.fields['account_title'].widget.attrs['id'] = 'account_title_select'
+        self.fields['account_title'].queryset = self.fields['account_title'].queryset.order_by('order')  #select2をオーダー順にする
         self.fields['account_title'].widget.attrs['tabindex'] = 3
         
         #固定項目フラグ
@@ -47,13 +48,15 @@ class PartnerForm(forms.ModelForm):
         #支払方法
         self.fields['payment_method_id'].widget.attrs['style'] = 'width:150px; height:40px;'
         self.fields['payment_method_id'].widget.attrs['tabindex'] = 7
-        #銀行
+        #銀行(select2)
         self.fields['bank'].widget.attrs['style'] = 'width:200px; height:40px;'
         self.fields['bank'].widget.attrs['id'] = 'bank_select'
+        self.fields['bank'].queryset = self.fields['bank'].queryset.order_by('order')  #select2をオーダー順にする
         self.fields['bank'].widget.attrs['tabindex'] = 8
-        #支店
+        #支店(select2)
         self.fields['bank_branch'].widget.attrs['style'] = 'width:200px; height:40px;'
         self.fields['bank_branch'].widget.attrs['id'] = 'bank_branch_select'
+        self.fields['bank_branch'].queryset = self.fields['bank_branch'].queryset.order_by('order')  #select2をオーダー順にする
         self.fields['bank_branch'].widget.attrs['tabindex'] = 9
         #口座種別
         self.fields['account_type'].widget.attrs['style'] = 'width:70px; height:40px;'
@@ -155,6 +158,8 @@ class Bank_BranchForm(forms.ModelForm):
         super(Bank_BranchForm, self).__init__(*args, **kwargs) # Call to ModelForm constructor
         self.fields['bank'].widget.attrs['id'] = 'select2_1'
         self.fields['bank'].widget.attrs['style'] = 'width:150px; height:40px;'
+        self.fields['bank'].queryset = self.fields['bank'].queryset.order_by('order')  #select2をオーダー順にする
+        
         self.fields['name'].widget.attrs['style'] = 'width:450px; height:40px;'
 
 
@@ -166,10 +171,11 @@ class PaymentForm(forms.ModelForm):
     class Meta:
         model = Payment
         fields = ('billing_year_month','trade_division_id','partner','account_title', 
-           'billing_amount', 'rough_estimate', 'payment_method_id','payment_due_date','payment_date','note')
+           'payment_method_id', 'billing_amount', 'rough_estimate', 'payment_due_date','payment_date','note')
     
     def __init__(self, *args, **kwargs):
         super(PaymentForm, self).__init__(*args, **kwargs) # Call to ModelForm constructor
+        
         
         #請求〆日(datepicker)
         self.fields['billing_year_month'].widget.attrs['tabindex'] = 0
@@ -183,22 +189,29 @@ class PaymentForm(forms.ModelForm):
         #取引先(select2用)
         self.fields['partner'].widget.attrs['style'] = 'width:200px; height:40px;'
         self.fields['partner'].widget.attrs['id'] = 'partner_select'
+        self.fields['partner'].queryset = self.fields['partner'].queryset.order_by('order')  #select2をオーダー順にする
         self.fields['partner'].widget.attrs['tabindex'] = 2
         
         #項目(select2用)
         self.fields['account_title'].widget.attrs['style'] = 'width:200px; height:40px;'
         self.fields['account_title'].widget.attrs['id'] = 'account_title_select'
+        self.fields['account_title'].queryset = self.fields['account_title'].queryset.order_by('order')  #select2をオーダー順にする
         self.fields['account_title'].widget.attrs['tabindex'] = 3
         
+        #支払方法
+        self.fields['payment_method_id'].widget.attrs['id'] = 'payment_method_id'
+        self.fields['payment_method_id'].widget.attrs['style'] = 'width:120px; height:40px;'
+        self.fields['payment_method_id'].widget.attrs['tabindex'] = 4
+        
         #支払金額
-        self.fields['billing_amount'].widget.attrs['tabindex'] = 4
+        self.fields['billing_amount'].widget.attrs['id'] = 'billing_amount'
+        self.fields['billing_amount'].widget.attrs['onchange'] = "setAmount();"
+        self.fields['billing_amount'].widget.attrs['tabindex'] = 5
         
         #概算
-        self.fields['rough_estimate'].widget.attrs['tabindex'] = 5
-        
-        #支払方法
-        self.fields['payment_method_id'].widget.attrs['style'] = 'width:120px; height:40px;'
-        self.fields['payment_method_id'].widget.attrs['tabindex'] = 6
+        self.fields['rough_estimate'].widget.attrs['id'] = 'rough_estimate'
+        self.fields['rough_estimate'].widget.attrs['tabindex'] = 6
+       
         
         #支払予定日(datepicker)
         self.fields['payment_due_date'].widget = forms.DateInput(attrs={'class':'datepicker_2', 'id': 'payment_due_date_picker'})

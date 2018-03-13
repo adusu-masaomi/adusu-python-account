@@ -45,6 +45,8 @@
         <!--select2-->
         <script src="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/js/select2.min.js"></script>
         
+        <!--tablefix-->
+        <script src="{{ STATIC_URL }} /static/js/jquery.tablefix.js" ></script>
         
         <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.37/js/bootstrap-datetimepicker.min.js"></script>-->
        
@@ -103,6 +105,7 @@
                    Copyright (C) 2018 copyrights.<a href="http://adusu-denki.com/">
 	                 adusu-denki.com</a> All Rights Reserved.
                 </p>
+                <a href="{% url 'logout' %}"   >ログアウト</a>
             </div>
 			</font>
 			{% endblock %}
