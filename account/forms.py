@@ -170,7 +170,7 @@ class PaymentForm(forms.ModelForm):
     
     class Meta:
         model = Payment
-        fields = ('billing_year_month','trade_division_id','partner','account_title', 
+        fields = ('billing_year_month', 'partner', 'trade_division_id','account_title', 
            'payment_method_id', 'billing_amount', 'rough_estimate', 'payment_due_date','payment_date','note')
     
     def __init__(self, *args, **kwargs):
@@ -182,15 +182,17 @@ class PaymentForm(forms.ModelForm):
         self.fields['billing_year_month'].widget = forms.DateInput(attrs={'class':'datepicker_1', 'id': 'billing_year_month_picker'})
         self.fields['billing_year_month'].widget.attrs['style'] = 'width:100px; height:40px;'
         
-        #取引区分
-        self.fields['trade_division_id'].widget.attrs['style'] = 'width:120px; height:40px;'
-        self.fields['trade_division_id'].widget.attrs['tabindex'] = 1
-        
         #取引先(select2用)
         self.fields['partner'].widget.attrs['style'] = 'width:200px; height:40px;'
         self.fields['partner'].widget.attrs['id'] = 'partner_select'
         self.fields['partner'].queryset = self.fields['partner'].queryset.order_by('order')  #select2をオーダー順にする
-        self.fields['partner'].widget.attrs['tabindex'] = 2
+        self.fields['partner'].widget.attrs['tabindex'] = 1
+        
+        #取引区分
+        self.fields['trade_division_id'].widget.attrs['style'] = 'width:120px; height:40px;'
+        self.fields['trade_division_id'].widget.attrs['tabindex'] = 2
+        self.fields['trade_division_id'].widget.attrs['id'] = 'trade_division_id_select'
+        
         
         #項目(select2用)
         self.fields['account_title'].widget.attrs['style'] = 'width:200px; height:40px;'

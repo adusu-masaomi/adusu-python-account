@@ -132,8 +132,8 @@ def payment_list(request, number=None):
     
     
     #return HttpResponse('◯◯◯の一覧')
-    payments = Payment.objects.all().order_by('id')
-        
+    #payments = Payment.objects.all().order_by('id')
+    payments = Payment.objects.all().order_by('order')
         
     if request.method == 'GET': # If the form is submitted
         
@@ -163,24 +163,28 @@ def payment_list(request, number=None):
             search_flag = True
             #◯月１日で検索するようにする
             search_query_month += "-01"
-            results = Payment.objects.all().filter(billing_year_month=search_query_month)
+            results = Payment.objects.all().filter(billing_year_month=search_query_month).order_by('order')
         
         if search_query_trade_division_id:
         #取引区分で絞り込み
             search_flag = True
             if results is None:
-                results = Payment.objects.all().filter(trade_division_id__icontains=search_query_trade_division_id)
+                results = Payment.objects.all().filter(trade_division_id__icontains=search_query_trade_division_id).order_by('order')
             else:
-                results = results.filter(trade_division_id__icontains=search_query_trade_division_id)
+                results = results.filter(trade_division_id__icontains=search_query_trade_division_id).order_by('order')
         
         if search_query_payment:
         #支払方法で絞り込み
             search_flag = True
             if results is None:
-                results = Payment.objects.all().filter(payment_method_id__icontains=search_query_payment)
+                results = Payment.objects.all().filter(payment_method_id__icontains=search_query_payment).order_by('order')
             else:
-                results = results.filter(payment_method_id__icontains=search_query_payment)
+                results = results.filter(payment_method_id__icontains=search_query_payment).order_by('order')
         ###
+        
+        #sort_by = request.GET.get('sort_by')
+        #if sort_by is not None:
+        #    results = results.order_by(sort_by)
         
         #if (search_query_trade_division_id or search_query_month):
         if search_flag == True:

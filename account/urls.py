@@ -1,4 +1,4 @@
-from django.conf.urls import url, include
+from django.conf.urls import url, include, patterns
 from account import views
 #import account
 
@@ -37,6 +37,7 @@ urlpatterns = [
     url(r'^payment/add/$', views.views.payment_edit, name='payment_add'),  # 登録
     url(r'^payment/mod/(?P<payment_id>\d+)/$', views.views.payment_edit, name='payment_mod'),  # 修正
     url(r'^payment/del/(?P<payment_id>\d+)/$', views.views.payment_del, name='payment_del'),   # 削除
+    url('partner_select/', views.ajaxs.ajax_partner_extract, name='partner_extract'),   #ajax
     url('payment_sort/', views.ajaxs.ajax_payment_sort, name='payment_sort'),                #ajax
     url(r'^payment/report_1/$', views.pdf_payment_list.payment_list_1, name='payment_list_1'),    #支払集計表
     url(r'^payment/data_transfer_1/$', views.data_transfer.automake_payment, name='payment_data_transfer'),    #データ移行
