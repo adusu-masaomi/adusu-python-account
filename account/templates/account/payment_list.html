@@ -16,8 +16,21 @@ table {
    
     <form type="get" action="" style="margin: 0">
     
-        <label for="searchbox">請求〆年月:</label>
-        <input class="searchfield" id="search_month" name="q_month" type="text" value="{{ request.GET.q_month }}" placeholder="選択してください..."/>
+        <label for="searchbox">請求〆年月(開始):</label>
+        <input class="searchfield" id="search_month_from" name="q_month_from" type="text" value="{{ request.GET.q_month_from }}" placeholder="選択してください..."/>
+        
+        <label for="searchbox">請求〆年月(終了):</label>
+        <input class="searchfield" id="search_month_to" name="q_month_to" type="text" value="{{ request.GET.q_month_to }}" placeholder="選択してください..."/>
+        
+        
+        <label for="id_partner">支払先:</label>
+        <select  class="django-select2" id="id_partner" style="width:200px;"  name="q_partner" value="{{ request.GET.q_partner }}" data-minimum-input-length="0">
+          <option value=""></option>
+          {% for partner in partners %}
+            <option value="{{partner.id}}">{{partner.name}}</option>
+          {% endfor %}
+        </select>
+        </br>
         
         <!--変更時はモデル側も要変更-->
         <label for="id_trade">取引区分:</label>
@@ -43,6 +56,7 @@ table {
    
     <a href="{% url 'account:payment_add' %}" class="btn btn-primary keep-disp">新規作成</a>
     <a href="{% url 'account:payment_list_1' %}" class="btn btn-cyan700_ftg keep-disp" target="_blank" >支払集計表</a>
+    <a href="{% url 'account:payment_list_2' %}" class="btn btn-lightblue300_ftg keep-disp" target="_blank" >支払集計表(提示用)</a>
     
     <!--スペース-->
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -136,21 +150,49 @@ table {
   
   $(document).on('ready page:load', function(){
     
+    //select2
+    $("#id_partner").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+    
     //画面位置保持用
     $('form').keepPosition();
     
     //dateFormat: "yy-mm-dd"
   
     $.datepicker.setDefaults( $.datepicker.regional[ "ja" ] );
-    $('#search_month').datepicker({
+    //開始月
+    $('#search_month_from').datepicker({
       dateFormat: "yy-mm",
       //カレンダーを開いた時、入力値の状態にさせる処理
       beforeShow: function (dateText, inst) { 
-        dateText = document.getElementById("search_month").value;
+        dateText = document.getElementById("search_month_from").value;
         date = new Date(dateText);
         if (dateText != ""){
           $.datepicker.setDefaults({"defaultDate":date});
         }
+      },
+      onSelect: function(dateText) {
+        //終了月へ開始月をコピー(未入力の場合または開始月が終了月より大きい場合)
+        if (document.getElementById("search_month_to").value == "" || 
+            document.getElementById("search_month_from").value > document.getElementById("search_month_to").value){
+           document.getElementById("search_month_to").value = 
+            document.getElementById("search_month_from").value;
+        }
+      },
+    });
+    
+    //終了月
+    $('#search_month_to').datepicker({
+      dateFormat: "yy-mm",
+      //カレンダーを開いた時、入力値の状態にさせる処理
+      beforeShow: function (dateText, inst) { 
+        dateText = document.getElementById("search_month_to").value;
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
+      },
+      onSelect: function(dateText) {
+      //  debugger;
       },
     });
     

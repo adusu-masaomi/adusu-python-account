@@ -39,6 +39,14 @@ class Index(View):
 
 def index(request):
     
+    #not work.....
+    #partners = Partner.objects.order_by('order')
+    #context_dict = {'partners': partners}
+    #import pdb; pdb.set_trace()
+    #return render(request,
+    #              'base.html',     # 使用するテンプレート
+    #              {context_dict})         # テンプレートに渡すデータ
+                  
     #return HttpResponse("Hello World !")
     return render(request,
                   'base.html',     # 使用するテンプレート
@@ -130,41 +138,62 @@ def bank_branch_list(request):
 def payment_list(request, number=None):
     """支払の一覧"""
     
-    
     #return HttpResponse('◯◯◯の一覧')
     #payments = Payment.objects.all().order_by('id')
     payments = Payment.objects.all().order_by('order')
-        
+    
+    #検索フォーム用に取引先も取得 
+    #add180403
+    partners = Partner.objects.order_by('order')
+    
     if request.method == 'GET': # If the form is submitted
         
         search_query_trade_division_id = request.GET.get('q', None)
-        search_query_month = request.GET.get('q_month', None)
+        search_query_month_from = request.GET.get('q_month_from', None)
+        search_query_month_to = request.GET.get('q_month_to', None)
         search_query_payment = request.GET.get('q_payment', None)
+        search_query_partner = request.GET.get('q_partner', None)
         
         #キャッシュに保存された検索結果をセット(年月のみ)
         if search_query_trade_division_id == None:
             search_query_trade_division_id = cache.get('search_query_trade_division_id')
             
-        if search_query_month == None:
-            search_query_month = cache.get('search_query_month')
+        if search_query_month_from == None:
+            search_query_month_from = cache.get('search_query_month_from')
+            
+        if search_query_month_to == None:
+            search_query_month_to = cache.get('search_query_month_to')
             
         
         #キャッシュへ検索結果をセット（最後の引数は、保存したい秒数）→２４時間とする
         cache.set('search_query_trade_division_id', search_query_trade_division_id, 86400)
-        cache.set('search_query_month', search_query_month, 86400)
+        cache.set('search_query_month_from', search_query_month_from, 86400)
+        cache.set('search_query_month_to', search_query_month_to, 86400)
         #
         
         ###フィルタリング
         results = None
         search_flag = False
         
-        if search_query_month:
-        #年月で絞り込み
+        if search_query_month_from:
+        #年月で絞り込み(開始)
             search_flag = True
             #◯月１日で検索するようにする
-            search_query_month += "-01"
-            results = Payment.objects.all().filter(billing_year_month=search_query_month).order_by('order')
+            search_query_month_from += "-01"
+            #results = Payment.objects.all().filter(billing_year_month=search_query_month_from).order_by('order')
+            results = Payment.objects.all().filter(billing_year_month__gte=search_query_month_from).order_by('order')
         
+        if search_query_month_to:
+        #年月で絞り込み(終了)
+            search_flag = True
+            #◯月１日で検索するようにする
+            search_query_month_to += "-01"
+            #results = Payment.objects.all().filter(billing_year_month=search_query_month_from).order_by('order')
+            if results is None:
+                results = Payment.objects.all().filter(billing_year_month__lte=search_query_month_to).order_by('order')
+            else:
+                results = results.filter(billing_year_month__lte=search_query_month_to).order_by('order')
+            
         if search_query_trade_division_id:
         #取引区分で絞り込み
             search_flag = True
@@ -180,6 +209,15 @@ def payment_list(request, number=None):
                 results = Payment.objects.all().filter(payment_method_id__icontains=search_query_payment).order_by('order')
             else:
                 results = results.filter(payment_method_id__icontains=search_query_payment).order_by('order')
+        
+        if search_query_partner:
+        #支払先で絞り込み
+            search_flag = True
+            if results is None:
+                results = Partner.objects.all().filter(partner_id=search_query_partner).order_by('order')
+            else:
+                results = results.filter(partner_id=search_query_partner).order_by('order')
+                
         ###
         
         #sort_by = request.GET.get('sort_by')
@@ -194,11 +232,11 @@ def payment_list(request, number=None):
            
             return render(request,
                 'account/payment_list.html',     # 使用するテンプレート
-                {'payments': results, 'total_price': total_price})         # テンプレートに渡すデータ
+                {'payments': results, 'partners': partners, 'total_price': total_price})         # テンプレートに渡すデータ
         else:
             return render(request,
                 'account/payment_list.html',     # 使用するテンプレート
-                {'payments': payments})         # テンプレートに渡すデータ
+                {'payments': payments, 'partners': partners})         # テンプレートに渡すデータ
         
     
 #ノーマルな雛形(事前Import必要)

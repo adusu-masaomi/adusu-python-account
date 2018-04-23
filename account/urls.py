@@ -39,7 +39,8 @@ urlpatterns = [
     url(r'^payment/del/(?P<payment_id>\d+)/$', views.views.payment_del, name='payment_del'),   # 削除
     url('partner_select/', views.ajaxs.ajax_partner_extract, name='partner_extract'),   #ajax
     url('payment_sort/', views.ajaxs.ajax_payment_sort, name='payment_sort'),                #ajax
-    url(r'^payment/report_1/$', views.pdf_payment_list.payment_list_1, name='payment_list_1'),    #支払集計表
+    url(r'^payment/report_1/$', views.pdf_payment_list.payment_list_1, name='payment_list_1'),    #支払集計表1
+    url(r'^payment/report_2/$', views.pdf_payment_list.payment_list_2, name='payment_list_2'),    #支払集計表2(提示用)
     url(r'^payment/data_transfer_1/$', views.data_transfer.automake_payment, name='payment_data_transfer'),    #データ移行
     url(r'^payment/data_transfer_2/$', views.data_transfer.delete_all_payment, name='payment_data_delete'),    #データ一括削除
 ]

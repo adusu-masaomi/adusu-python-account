@@ -37,7 +37,15 @@
        $('[tabindex=4]').focus(); 
      });
      
-     //銀行のselect2設定
+     //振込・振替元銀行のselect2設定
+     $("#source_bank_select").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+      //select2をenterキー押下した場合(リストが閉じられた時)のタブ移動。
+     $( "#source_bank_select" ).on("select2:close", function (e) {
+       $('[tabindex=9]').focus(); 
+     });
+         
+     
+     //振込先銀行のselect2設定
      $("#bank_select").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
      $( "#bank_select" ).change(function(e) {
        var bank_id = $(this)[0].value;
@@ -64,13 +72,13 @@
      });
      //select2をenterキー押下した場合(リストが閉じられた時)のタブ移動。
      $( "#bank_select" ).on("select2:close", function (e) {
-       $('[tabindex=9]').focus(); 
+       $('[tabindex=10]').focus(); 
      });
     
      $("#bank_branch_select").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
      //select2をenterキー押下した場合(リストが閉じられた時)のタブ移動。
      $( "#bank_branch_select" ).on("select2:close", function (e) {
-       $('[tabindex=10]').focus(); 
+       $('[tabindex=11]').focus(); 
      });
    });
 

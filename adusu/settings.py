@@ -73,6 +73,13 @@ MIDDLEWARE_CLASSES = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
+#centOsはこれがないとエラーになる
+MIDDLEWARE = [
+    # ...
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+    # ...
+]
+
 #各ページのキャッシュ時間を秒単位で指定
 #CACHE_MIDDLEWARE_SECONDS = 60 * 1440   #24時間
 #CACHE_MIDDLEWARE_KEY_PREFIX = 'bbs'    #複数のサイト間でキャッシュを共有する場合
@@ -83,6 +90,10 @@ ROOT_URLCONF = 'adusu.urls'
 
 #ヌルの場合の記号（デフォルトはNone）
 EMPTY_MARK = '-'
+#支払方法のID
+ID_PAYMENT_METHOD_TRANSFER = 1    #振込
+ID_PAYMENT_METHOD_WITHDRAWAL = 2  #引落
+#
 
 TEMPLATES = [
     {
@@ -96,6 +107,8 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'account.context_processors.empty_mark_info',
+                'account.context_processors.payment_method_transfer_info',
+                'account.context_processors.payment_method_withdrawal_info',
             ],
         },
     },

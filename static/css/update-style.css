@@ -12,16 +12,17 @@
   background-color: transparent;
 }
 
+/* ローカル環境用に色を変更している！！ */
 .navbar-inverse {
   background-color: #9e481b;
-  background-image: -moz-linear-gradient(top, #2E2EFE, #58D3F7);
-  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#2E2EFE), to(#111111));
-  background-image: -webkit-linear-gradient(top, #2E2EFE, #58D3F7);
-  background-image: -o-linear-gradient(top, #2E2EFE, #58D3F7);
-  background-image: linear-gradient(to bottom, #2E2EFE, #58D3F7);
+  background-image: -moz-linear-gradient(top, #000000, #58D3F7);
+  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#000000), to(#111111));
+  background-image: -webkit-linear-gradient(top, #000000, #58D3F7);
+  background-image: -o-linear-gradient(top, #000000, #58D3F7);
+  background-image: linear-gradient(to bottom, #000000, #58D3F7);
   background-repeat: repeat-x;
   border-color: #c22525;
-  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ff2E2EFE', endColorstr='#ffcc7426', GradientType=0);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ff000000', endColorstr='#ffcc7426', GradientType=0);
 }
 /*メニューフォーカス時のカラー*/
 .navbar-inverse .navbar-nav > li > a:hover,
