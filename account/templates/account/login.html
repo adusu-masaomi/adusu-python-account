@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Adusu会計管理システム</title>
+    <h1>ログイン画面</h1>
+</head>
+<body>
+    <form action="/account/login/" method="post">
+        {% csrf_token %}
+        {% if next %}
+        <input type="hidden" name="next" value="{{ next }}" />
+        {% endif %}
+        <input type="text" name="username" placeholder="ユーザID" style="font-size:20px;">
+        </br>
+        </br>
+        <input type="password" name="password" placeholder="パスワード" style="font-size:20px;">
+        </br>
+        </br>
+        <button type="submit" name="login" style="font-size:20px;">ログイン</button>
+        
+    </form>
+</body>
+</html>

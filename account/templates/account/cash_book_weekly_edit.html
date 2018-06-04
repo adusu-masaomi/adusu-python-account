@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load bootstrap %}
+
+{% block title %}週末データの編集{% endblock title %}
+
+{% block content %}
+    <h3 class="page-header">週末データの編集</h3>
+    {% if cash_book_weekly_id %}
+    <form action="{% url 'account:cash_book_weekly_mod' cash_book_weekly_id=cash_book_weekly_id %}" method="post" class="form-horizontal" role="form">
+    {% else %}
+    <form action="{% url 'account:cash_book_weekly_add' %}" method="post" class="form-horizontal" role="form">
+    {% endif %}
+      {% csrf_token %}
+      {{ form|bootstrap_horizontal }}
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-10">
+          <button type="submit" class="btn btn-primary">登録</button>
+        </div>
+      </div>
+    </form>
+    <a href="{% url 'account:cash_book_weekly_list' %}" class="btn btn-default">戻る</a>
+
+<script type="text/javascript" >
+  
+  //datepickerの設定
+  var dateFormatMonth = 'yy-mm';
+  var dateFormatNormal = 'yy-mm-dd';
+  
+  $(document).on('ready page:load', function(){
+    
+    $.datepicker.setDefaults( $.datepicker.regional[ "ja" ] );
+  
+    $('#computation_date').datepicker({
+      dateFormat: dateFormatNormal,
+      //カレンダーを開いた時、入力値の状態にさせる処理
+      beforeShow: function (dateText, inst) { 
+        
+        dateText = document.getElementById("computation_date").value;
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
+      },
+      // You can put more options here.
+      onClose: function(dateText, inst) { 
+        //次のコントロールへフォーカスを移す
+        //$('[tabindex=2]').focus(); 
+        var tabindex = parseInt($(this).attr('tabindex'));
+        $('[tabindex='+(tabindex+1)+']').focus();
+        
+      }
+    });
+    
+  });
+  
+  //総残高を計算
+  function setTotalBalance(){
+    
+    if (document.getElementById("balance_president") != undefined && 
+        document.getElementById("balance_staff") != undefined ){
+      document.getElementById("balance").value = parseInt(document.getElementById("balance_president").value) + 
+            parseInt(document.getElementById("balance_staff").value);
+    }
+  }
+  
+  
+</script>
+
+{% endblock content %}
+
