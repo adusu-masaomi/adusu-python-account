@@ -43,4 +43,22 @@ urlpatterns = [
     url(r'^payment/report_2/$', views.pdf_payment_list.payment_list_2, name='payment_list_2'),    #支払集計表2(提示用)
     url(r'^payment/data_transfer_1/$', views.data_transfer.automake_payment, name='payment_data_transfer'),    #データ移行
     url(r'^payment/data_transfer_2/$', views.data_transfer.delete_all_payment, name='payment_data_delete'),    #データ一括削除
+    #出納帳
+    url(r'^cash_book/$', views.views.cash_book_list, name='cash_book_list'),   # 一覧
+    url(r'^cash_book/add/$', views.views.cash_book_edit, name='cash_book_add'),  # 登録
+    url(r'^cash_book/mod/(?P<cash_book_id>\d+)/$', views.views.cash_book_edit, name='cash_book_mod'),  # 修正
+    url(r'^cash_book/del/(?P<cash_book_id>\d+)/$', views.views.cash_book_del, name='cash_book_del'),   # 削除
+    url(r'^cash_book/set_weekly_1/$', views.aggregate_weekly.set_weekly, name='set_weekly'),    #週末データ手動作成
+    url('cash_book_sort/', views.ajaxs.ajax_cash_book_sort, name='cash_book_sort'),                        #ajax
+    url(r'^cash_book/report_2/$', views.pdf_cash_book.list_2, name='cash_book_list_2'),    #集計表(抽出用)
+    url(r'^cash_book/cash_book_export_1/$', views.export_csv.cash_book_export, name='cash_book_export'),     #csv
+    url(r'^cash_book/cash_book_export_extract_1/$', views.export_csv.cash_book_export_extract, name='cash_book_export_extract'),     #csv
+    url(r'^cash_book/cash_book_training_account_title_1/$', views.machine_learning.training_account_title, name='training_account_title'),     #機械学習
+    url('predict_account_tile/', views.ajaxs.ajax_cash_book_predict_account_tile, name='predict_account_tile'),   #ajax
+    #週末データ
+    url(r'^cash_book_weekly/$', views.views.cash_book_weekly_list, name='cash_book_weekly_list'),   # 一覧
+    url(r'^cash_book_weekly/add/$', views.views.cash_book_weekly_edit, name='cash_book_weekly_add'),  # 登録
+    url(r'^cash_book_weekly/mod/(?P<cash_book_weekly_id>\d+)/$', views.views.cash_book_weekly_edit, name='cash_book_weekly_mod'),  # 修正
+    url(r'^cash_book_weekly/del/(?P<cash_book_weekly_id>\d+)/$', views.views.cash_book_weekly_del, name='cash_book_weekly_del'),   # 削除
+    
 ]

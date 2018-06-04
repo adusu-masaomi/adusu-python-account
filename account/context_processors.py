@@ -13,3 +13,7 @@ def payment_method_withdrawal_info(request):
     return {
         'ID_PAYMENT_METHOD_WITHDRAWAL': settings.ID_PAYMENT_METHOD_WITHDRAWAL
     }
+def staff_president_info(request):
+    return {
+        'ID_STAFF_PRESIDENT': settings.ID_STAFF_PRESIDENT
+    }

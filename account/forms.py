@@ -4,6 +4,8 @@ from account.models import Account_Title
 from account.models import Bank
 from account.models import Bank_Branch
 from account.models import Payment
+from account.models import Cash_Book
+from account.models import Cash_Book_Weekly
 from django import forms
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Div, Button, ButtonHolder, Fieldset, Field
@@ -291,8 +293,94 @@ class PaymentForm(forms.ModelForm):
         #Div('pay_month_flag_12',css_class='checkbox-inline'),
                  
         
+class Cash_BookForm(forms.ModelForm):
+    """現金出納帳のフォーム"""
+    class Meta:
+        model = Cash_Book
+        fields = ('settlement_date', 'receipt_date', 'description_partner', 'description_content', 'account_title', 'staff', 
+                  'purchase_order_code', 'incomes', 'expences', )
         
-    
+    def __init__(self, *args, **kwargs):
+        super(Cash_BookForm, self).__init__(*args, **kwargs) # Call to ModelForm constructor
+        
+        #請求日(datepicker)
+        #self.fields['settlement_date'].widget.attrs['tabindex'] = 0
+        self.fields['settlement_date'].widget = forms.DateInput(attrs={'class':'datepicker', 'id': 'settlement_date_picker'})
+        self.fields['settlement_date'].widget.attrs['style'] = 'width:100px; height:35px;'
+        
+        #領収日(datepicker)
+        #self.fields['receipt_date'].widget.attrs['tabindex'] = 1
+        self.fields['receipt_date'].widget = forms.DateInput(attrs={'class':'datepicker', 'id': 'receipt_date'})
+        self.fields['receipt_date'].widget.attrs['style'] = 'width:100px; height:35px;'
+        
+        #適用（取引先）
+        self.fields['description_partner'].widget.attrs['id'] = 'description_partner'
+        self.fields['description_partner'].widget.attrs['style'] = 'width:430px; height:35px;'
+        self.fields['description_partner'].widget.attrs['tabindex'] = 2
+        
+        #適用（取引内容）
+        self.fields['description_content'].widget.attrs['id'] = 'description_content'
+        self.fields['description_content'].widget.attrs['style'] = 'width:430px; height:35px;'
+        self.fields['description_content'].widget.attrs['onchange'] = "predictAccountTitle();"
+        self.fields['description_content'].widget.attrs['tabindex'] = 3
+        
+        #勘定科目
+        self.fields['account_title'].widget.attrs['id'] = 'account_title'
+        self.fields['account_title'].widget.attrs['style'] = 'width:430px; height:35px;'
+        self.fields['account_title'].widget.attrs['tabindex'] = 4
+        
+        #社員
+        self.fields['staff'].widget.attrs['style'] = 'width:150px; height:40px;'
+        self.fields['staff'].widget.attrs['tabindex'] = 5
+        self.fields['staff'].widget.attrs['id'] = 'staff'
+        
+        #注文コード
+        self.fields['purchase_order_code'].widget.attrs['style'] = 'width:150px; height:40px;'
+        self.fields['purchase_order_code'].widget.attrs['tabindex'] = 6
+        self.fields['purchase_order_code'].widget.attrs['id'] = 'purchase_order_code'
+        
+        #収入金額
+        self.fields['incomes'].widget.attrs['id'] = 'incomes'
+        self.fields['incomes'].widget.attrs['style'] = 'width:120px; height:35px;'
+        self.fields['incomes'].widget.attrs['tabindex'] = 7
+        
+        #支払金額
+        self.fields['expences'].widget.attrs['id'] = 'expences'
+        self.fields['expences'].widget.attrs['style'] = 'width:120px; height:35px;'
+        self.fields['expences'].widget.attrs['tabindex'] = 8
+       
+
+class Cash_Book_WeeklyForm(forms.ModelForm):
+    """現金出納帳週末データのフォーム"""
+    class Meta:
+        model = Cash_Book_Weekly
+        fields = ('computation_date', 'balance_president', 'balance_staff', 'balance', )
+        
+    def __init__(self, *args, **kwargs):
+        super(Cash_Book_WeeklyForm, self).__init__(*args, **kwargs) # Call to ModelForm constructor
+        
+        #集計日(datepicker)
+        self.fields['computation_date'].widget = forms.DateInput(attrs={'class':'datepicker', 'id': 'computation_date'})
+        self.fields['computation_date'].widget.attrs['style'] = 'width:100px; height:35px;'
+        self.fields['computation_date'].widget.attrs['tabindex'] = 0
+        
+        #残高（社長）
+        self.fields['balance_president'].widget.attrs['tabindex'] = 1
+        self.fields['balance_president'].widget.attrs['id'] = 'balance_president'
+        self.fields['balance_president'].widget.attrs['style'] = 'width:100px;text-align:right;'
+        self.fields['balance_president'].widget.attrs['onchange'] = "setTotalBalance();"
+        
+        #残高（社員）
+        self.fields['balance_staff'].widget.attrs['tabindex'] = 2
+        self.fields['balance_staff'].widget.attrs['id'] = 'balance_staff'
+        self.fields['balance_staff'].widget.attrs['style'] = 'width:100px;text-align:right;'
+        self.fields['balance_staff'].widget.attrs['onchange'] = "setTotalBalance();"
+        
+        #総残高
+        self.fields['balance'].widget.attrs['tabindex'] = 3
+        self.fields['balance'].widget.attrs['id'] = 'balance'
+        self.fields['balance'].widget.attrs['style'] = 'width:100px;text-align:right;'
+        
 #ノーマルなサンプル
 #class XXXForm(ModelForm):
 #    """◯◯◯のフォーム"""

@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% load humanize %}
+{% load debug_tags %}
 {% load sorting_tags %}
+
+<!--デバッグしたい箇所で下記をセットする-->
+<!--{% set_trace %}-->
+
 {% block title %}支払の一覧{% endblock title %}
 {% block extrahead %}
 <style>
@@ -17,46 +22,55 @@ table {
     <form type="get" action="" style="margin: 0">
     
         <label for="searchbox">請求〆年月(開始):</label>
-        <input class="searchfield" id="search_month_from" name="q_month_from" type="text" value="{{ request.GET.q_month_from }}" placeholder="選択してください..."/>
+        <input class="searchfield" id="search_month_from" name="q_month_from" type="text" value="{{search_query_month_from}}" placeholder="選択してください..."/>
+        
+        <button type="button" class="btn btn-grey400_rsd btn-xs" onclick="clearDateFrom()" >×</button>
         
         <label for="searchbox">請求〆年月(終了):</label>
-        <input class="searchfield" id="search_month_to" name="q_month_to" type="text" value="{{ request.GET.q_month_to }}" placeholder="選択してください..."/>
+        <input class="searchfield" id="search_month_to" name="q_month_to" type="text" value="{{search_query_month_to}}" placeholder="選択してください..."/>
         
+        <button type="button" class="btn btn-grey400_rsd btn-xs" onclick="clearDateTo()" >×</button>
         
         <label for="id_partner">支払先:</label>
-        <select  class="django-select2" id="id_partner" style="width:200px;"  name="q_partner" value="{{ request.GET.q_partner }}" data-minimum-input-length="0">
+        <select  class="django-select2" id="id_partner" style="width:200px;"  name="q_partner" value="{{ search_query_partner }}" data-minimum-input-length="0">
           <option value=""></option>
           {% for partner in partners %}
-            <option value="{{partner.id}}">{{partner.name}}</option>
+            <option value="{{partner.id}}" {% if search_query_partner == partner.id|stringformat:"s" %} selected {% endif %} >{{partner.name}}</option>
           {% endfor %}
         </select>
         </br>
         
         <!--変更時はモデル側も要変更-->
         <label for="id_trade">取引区分:</label>
-        <select  class="django-select2" id="id_trade" style="width:200px;"  name="q" value="{{ request.GET.q }}" data-minimum-input-length="0">
+        <select  class="django-select2" id="id_trade" style="width:200px;"  name="q_trade_division_id" value="{{ search_query_trade_division_id }}" data-minimum-input-length="0">
           <!--<option value="">-- どれか一つを選んで下さい。 --</option>-->
           <option value=""></option>
-          <option value="0">外注・工事仕入</option>
-          <option value="1">経費</option>
+          <option value="0" {% if search_query_trade_division_id == "0" %} selected {% endif %}>外注・工事仕入</option>
+          <option value="1" {% if search_query_trade_division_id == "1" %} selected {% endif %}>経費</option>
         </select>
+        
+        <!--クリアボタン-->
+        <button type="button" class="btn btn-grey400_rsd btn-xs" onclick="clearTradeDivision()" >×</button>
         
         <!--変更時はモデル側も要変更-->
         <label for="id_payment">支払方法:</label>
-        <select  class="django-select2" id="id_payment" style="width:200px;"  name="q_payment" value="{{ request.GET.q_payment }}" data-minimum-input-length="0">
+        <select  class="django-select2" id="id_payment" style="width:200px;"  name="q_payment" value="{{ search_query_payment }}" data-minimum-input-length="0">
           <!--<option value="">-- どれか一つを選んで下さい。 --</option>-->
           <option value=""></option>
-          <option value="1">振込</option>
-          <option value="2">口座振替</option>
-          <option value="3">ＡＴＭ</option>
-          <option value="4">現金</option>
+          <option value="1" {% if search_query_payment == "1" %} selected {% endif %} >振込</option>
+          <option value="2" {% if search_query_payment == "2" %} selected {% endif %}>口座振替</option>
+          <option value="3" {% if search_query_payment == "3" %} selected {% endif %}>ＡＴＭ</option>
+          <option value="4" {% if search_query_payment == "4" %} selected {% endif %}>現金</option>
         </select>
+        <!--クリアボタン-->
+        <button type="button" class="btn btn-grey400_rsd btn-xs" onclick="clearPayment()" >×</button>
+        
       </br><button id="search_submit" type="submit" class="btn btn-grey200_rsd keep-disp" style="padding-top:2px;width: 50px; height: 20px;">検索</button>
     </form>
    
     <a href="{% url 'account:payment_add' %}" class="btn btn-primary keep-disp">新規作成</a>
     <a href="{% url 'account:payment_list_1' %}" class="btn btn-cyan700_ftg keep-disp" target="_blank" >支払集計表</a>
-    <a href="{% url 'account:payment_list_2' %}" class="btn btn-lightblue300_ftg keep-disp" target="_blank" >支払集計表(提示用)</a>
+    <a href="{% url 'account:payment_list_2' %}" class="btn btn-lightblue200_ftg keep-disp" target="_blank" >支払集計(中越)</a>
     
     <!--スペース-->
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -247,6 +261,25 @@ table {
 		//bodyDiv.scrollTop($.cookie(key));
         win.scrollTop($.cookie(key));
     },0);
+  }
+  
+  //開始日をクリアする
+  function clearDateFrom(){
+   document.getElementById("search_month_from").value = "";
+  }
+  //終了日をクリアする
+  function clearDateTo(){
+   document.getElementById("search_month_to").value = "";
+  }
+  
+  //取引区分をクリアする
+  function clearTradeDivision(){
+    document.getElementById("id_trade").selectedIndex = 0;
+  }
+  
+  //支払区分をクリアする
+  function clearPayment(){
+    document.getElementById("id_payment").selectedIndex = 0;
   }
   
   //削除確認用

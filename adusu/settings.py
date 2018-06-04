@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'datetimewidget',
     'sorting_bootstrap',
     'webstack_django_sorting',
+    'template_debug',
 ]
 
 
@@ -93,7 +94,8 @@ EMPTY_MARK = '-'
 #支払方法のID
 ID_PAYMENT_METHOD_TRANSFER = 1    #振込
 ID_PAYMENT_METHOD_WITHDRAWAL = 2  #引落
-#
+#社員ID
+ID_STAFF_PRESIDENT = 1 #社長
 
 TEMPLATES = [
     {
@@ -191,6 +193,14 @@ STATICFILES_DIRS = (
     os.path.join(BASE_DIR, "static"),
 )
 
+#学習ファイルのパス（macとcentosで異なる)
+#for mac
+DIR_VECT_CASH_BOOK = 'static/data/vect.pkl'
+DIR_CLF_CASH_BOOK = 'static/data/clf.pkl'
+#for centOS
+#DIR_VECT_CASH_BOOK = '/var/www/work_py/adusu/static/data/vect.pkl'
+#DIR_CLF_CASH_BOOK = '/var/www/work_py/adusu/static/data/clf.pkl'
+#
 
 DEBUG_TOOLBAR_CONFIG = {
     'SHOW_TEMPLATE_CONTEXT': True,
