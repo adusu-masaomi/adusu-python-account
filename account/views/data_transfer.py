@@ -37,6 +37,11 @@ def automake_payment(request):
     PAY_DIVISION_THIS_MONTH_END_ADVANCE = 3
     PAY_DIVISION_THIS_MONTH_END_POSTPONE = 4
     
+    #add180903
+    PAY_DIVISION_NEXT_MONTH_END_ADVANCE = 5
+    PAY_DIVISION_NEXT_MONTH_END_POSTPONE = 6
+    #
+    
     #temp_date = cache.get('search_query_month')
     #upd180418
     temp_date = cache.get('search_query_month_from')
@@ -151,7 +156,9 @@ def automake_payment(request):
                 
                 #if partner.pay_day_division is PAY_DIVISION_THIS_MONTH_END_ADVANCE:
                 if partner.pay_day_division is PAY_DIVISION_THIS_MONTH_END_ADVANCE or \
-                    partner.pay_day_division is PAY_DIVISION_THIS_MONTH_END_POSTPONE:
+                    partner.pay_day_division is PAY_DIVISION_THIS_MONTH_END_POSTPONE or \
+                    partner.pay_day_division is PAY_DIVISION_NEXT_MONTH_END_ADVANCE or \
+                    partner.pay_day_division is PAY_DIVISION_NEXT_MONTH_END_POSTPONE:
                 #月末の場合は、とりあえず１日としておく（後で算出）
                     tmp_day = 1
                 
@@ -187,6 +194,21 @@ def automake_payment(request):
                         
                         #土日祝を考慮して加算する（月末の場合は、土日祝があれば日付は”先送り”になる）
                         pay_date = date_eliminate_holiday(pay_date, 1)
+                    elif partner.pay_day_division is PAY_DIVISION_NEXT_MONTH_END_ADVANCE:
+                    #翌月末(前倒)
+                        pay_date += relativedelta(months=2, days=-1) #2ヶ月加算して1日減算
+                        
+                        #土日祝を考慮して加算する（月末の場合は、土日祝があれば日付は”前倒し”になる）
+                        pay_date = date_eliminate_holiday(pay_date, 2)
+                    elif partner.pay_day_division is PAY_DIVISION_NEXT_MONTH_END_POSTPONE:
+                    #翌月末(先送)
+                        pay_date += relativedelta(months=2, days=-1) #2ヶ月加算して1日減算
+                        
+                        #土日祝を考慮して加算する（月末の場合は、土日祝があれば日付は”先送り”になる）
+                        pay_date = date_eliminate_holiday(pay_date, 1)
+                    #ex.翌々月も追加する場合は、ここの条件分岐に加える他、１つ前の条件分岐にも
+                    #追記すること。
+                    
                     #支払日区分入力有り？
                     #if partner.pay_day_division > 0:  
                         

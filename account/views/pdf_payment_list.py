@@ -31,6 +31,8 @@ PAYMENT_METHOD_TRANSFER = 1       #支払方法（振込）の場合
 PAYMENT_METHOD_DIRECT_DEBIT = 2   #支払方法（口座振替）の場合
 PAYMENT_METHOD_CACHE = 4          #支払方法（現金）の場合
 
+MAX_LINE_LIST_1 = 48    #支払集計表の１ページ最大行数
+
 #支払集計表
 def payment_list_1(request):
     
@@ -82,6 +84,10 @@ def payment_list_1(request):
     
     # PDF に描画します。 PDF 生成のキモの部分です。
     
+    #条件でクエリーセット抽出
+    payments = filter()
+    
+    
     #タイトル部出力
     x = 0
     y = 0
@@ -99,7 +105,7 @@ def payment_list_1(request):
     #    payments = Payment.objects.all()
     
     #条件でクエリーセット抽出
-    payments = filter()
+    #payments = filter()
     
     #小計・合計用
     payment_method_id_saved = None
@@ -117,7 +123,7 @@ def payment_list_1(request):
         cnt += 1
         
         #改ページ
-        if cnt > 50:
+        if cnt > MAX_LINE_LIST_1:
             p.showPage()  
             #page_count += 1
             p,x,y = set_title_normal(p,x,y)
@@ -190,6 +196,7 @@ def payment_list_1(request):
         payment_method_id_saved = payment.payment_method_id
         #
         
+        
         #まず塗りつぶしの枠を入れる
         if payment.trade_division_id == 0:
             p.setFillColorRGB(0.737254,0.784313,0.858823)   #水色
@@ -199,8 +206,8 @@ def payment_list_1(request):
         p.setFillColorRGB(0,0,0)  #色を黒に戻す
         #
         
-        #複数月範囲の場合は、見分けられるように月も出力
-        if multi_month == True:
+        #複数月範囲の場合、または未払リストの場合は、見分けられるように月も出力
+        if multi_month == True or search_query_paid:
             #import pdb; pdb.set_trace()
             
             if payment.billing_year_month is not None:
@@ -294,8 +301,19 @@ def payment_list_1(request):
                     bank = None
                 if bank is not None:
                     bank_name = str(bank.name)
+                    
+                    if len(bank_name) > 6:
+                        #文字数が８文字以上ならカットする
+                        if len(bank_name) > 8:
+                            bank_name = bank_name[0:8]
+                    
+                        p.setFont(font_name, 5)  #フォントを下げる
+                                
                     #銀行
                     p.drawString(x*mm, y*mm, bank_name)
+                    
+                    #フォントを戻す
+                    p.setFont(font_name, 7)
                     
                     if partner.bank_branch_id is not None:
                         bank_branch = Bank_Branch.objects.get(pk=partner.bank_branch_id)
@@ -752,16 +770,18 @@ def payment_list_2(request):
              payment.payment_method_id == settings.ID_PAYMENT_METHOD_WITHDRAWAL:
         #振込・振替の場合
             #支払金額・手数料
-            if payment.payment_amount is not None and payment.billing_amount is not None and \
-                 payment.payment_amount != billing_amount:
+            if (payment.payment_amount is not None and payment.billing_amount is not None and \
+                 payment.payment_amount != billing_amount) or payment.commission is not None :
                 #支払金額
                 x += 13
-                payment_amount = "￥" + str("{0:,d}".format(payment.payment_amount))  #桁区切り
-                p.drawRightString(x*mm, y*mm, payment_amount)
+                if payment.payment_amount is not None:
+                    payment_amount = "￥" + str("{0:,d}".format(payment.payment_amount))  #桁区切り
+                    p.drawRightString(x*mm, y*mm, payment_amount)
                 #手数料
                 x += 13
-                commission = "￥" + str("{0:,d}".format(payment.commission))  #桁区切り
-                p.drawRightString(x*mm, y*mm, commission)
+                if payment.commission is not None:
+                    commission = "￥" + str("{0:,d}".format(payment.commission))  #桁区切り
+                    p.drawRightString(x*mm, y*mm, commission)
                 x += 10
             else:
                 x += 36 
@@ -928,16 +948,21 @@ def set_title_normal(p,x,y):
         tmp_year = tmp_date_from[0:4]
         tmp_month = tmp_date_from[5:7]
         
-        str_title = tmp_year + "年" + tmp_month + "月" + "〆" + '　支払予定表'
-        p.drawString(HEADER_X*mm, HEADER_Y*mm, str_title)
+        #if search_query_paid == False:
+        if not search_query_paid:
+            str_title = tmp_year + "年" + tmp_month + "月" + "〆" + '　支払予定表'
+            p.drawString(HEADER_X*mm, HEADER_Y*mm, str_title)
         
-        #月が複数指定の場合は、終了月も出力
-        if tmp_date_from != tmp_date_to:
-            #◯◯◯◯年◯◯月〆の文字を作る
-            tmp_year = tmp_date_to[0:4]
-            tmp_month = tmp_date_to[5:7]
-            str_title = "〜" + tmp_year + "年" + tmp_month + "月" + "〆" 
-            p.drawString((HEADER_X-5)*mm, (HEADER_Y+6)*mm, str_title)
+            #月が複数指定の場合は、終了月も出力
+            if tmp_date_from != tmp_date_to:
+                #◯◯◯◯年◯◯月〆の文字を作る
+                tmp_year = tmp_date_to[0:4]
+                tmp_month = tmp_date_to[5:7]
+                str_title = "〜" + tmp_year + "年" + tmp_month + "月" + "〆" 
+                p.drawString((HEADER_X-5)*mm, (HEADER_Y+6)*mm, str_title)
+        else:
+            str_title = '支払予定表'
+            p.drawString((HEADER_X+15)*mm, HEADER_Y*mm, str_title)
         
     else:
     #月指定してない場合
@@ -1054,6 +1079,26 @@ def filter():
         else:
             results = results.filter(payment_method_id=search_query_payment)
      
+    
+    global search_query_paid
+    search_query_paid = cache.get('search_query_paid')
+    if search_query_paid:
+        #支払状況で絞り込み
+        if search_query_paid == "0":
+            search_flag = True
+            if results is None:
+                results = Payment.objects.all().filter(payment_date__isnull=True).order_by('order')
+            else:
+                results = results.filter(payment_date__isnull=True)
+        elif search_query_paid == "1":
+        #支払済
+            search_flag = True
+            if results is None:
+                results = Payment.objects.all().filter(payment_date__isnull=False)
+            else:
+                results = results.filter(payment_date__isnull=False)
+    
+    
     if results is not None:
     #条件検索なら、並び順を設定
         if multi_month == False:

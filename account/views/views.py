@@ -161,6 +161,7 @@ def payment_list(request, number=None):
         search_query_month_to = request.GET.get('q_month_to', None)
         search_query_payment = request.GET.get('q_payment', None)
         search_query_partner = request.GET.get('q_partner', None)
+        search_query_paid = request.GET.get('q_paid', None)
         
         #キャッシュに保存された検索結果をセット(年月のみ)
         if search_query_trade_division_id == None:
@@ -178,6 +179,8 @@ def payment_list(request, number=None):
             search_query_payment = cache.get('search_query_payment')
         if search_query_partner == None:
             search_query_partner = cache.get('search_query_partner')
+        if search_query_paid == None:
+            search_query_paid = cache.get('search_query_paid')
         #
         #キャッシュへ検索結果をセット（最後の引数は、保存したい秒数）
         cache.set('search_query_trade_division_id', search_query_trade_division_id, 86400)
@@ -188,6 +191,7 @@ def payment_list(request, number=None):
         cache.set('search_query_trade_division_id', search_query_trade_division_id, 10800)
         cache.set('search_query_payment', search_query_payment, 10800)
         cache.set('search_query_partner', search_query_partner, 10800)
+        cache.set('search_query_paid', search_query_paid, 10800)
         #
         
         ###フィルタリング
@@ -199,46 +203,70 @@ def payment_list(request, number=None):
             search_flag = True
             #◯月１日で検索するようにする
             search_query_month_from += "-01"
-            #results = Payment.objects.all().filter(billing_year_month=search_query_month_from).order_by('order')
-            results = Payment.objects.all().filter(billing_year_month__gte=search_query_month_from).order_by('order')
+            #results = Payment.objects.all().filter(billing_year_month__gte=search_query_month_from).order_by('order')
+            results = Payment.objects.all().filter(billing_year_month__gte=search_query_month_from)
         
         if search_query_month_to:
         #年月で絞り込み(終了)
             search_flag = True
             #◯月１日で検索するようにする
             search_query_month_to += "-01"
-            #results = Payment.objects.all().filter(billing_year_month=search_query_month_from).order_by('order')
             if results is None:
-                results = Payment.objects.all().filter(billing_year_month__lte=search_query_month_to).order_by('order')
+                #results = Payment.objects.all().filter(billing_year_month__lte=search_query_month_to).order_by('order')
+                results = Payment.objects.all().filter(billing_year_month__lte=search_query_month_to)
             else:
-                results = results.filter(billing_year_month__lte=search_query_month_to).order_by('order')
+                #results = results.filter(billing_year_month__lte=search_query_month_to).order_by('order')
+                results = results.filter(billing_year_month__lte=search_query_month_to)
             
         if search_query_trade_division_id:
         #取引区分で絞り込み
             search_flag = True
             if results is None:
-                results = Payment.objects.all().filter(trade_division_id__icontains=search_query_trade_division_id).order_by('order')
+                #results = Payment.objects.all().filter(trade_division_id__icontains=search_query_trade_division_id).order_by('order')
+                results = Payment.objects.all().filter(trade_division_id__icontains=search_query_trade_division_id)
             else:
-                results = results.filter(trade_division_id__icontains=search_query_trade_division_id).order_by('order')
+                #results = results.filter(trade_division_id__icontains=search_query_trade_division_id).order_by('order')
+                results = results.filter(trade_division_id__icontains=search_query_trade_division_id)
         
         if search_query_payment:
         #支払方法で絞り込み
             search_flag = True
             if results is None:
-                results = Payment.objects.all().filter(payment_method_id__icontains=search_query_payment).order_by('order')
+                #results = Payment.objects.all().filter(payment_method_id__icontains=search_query_payment).order_by('order')
+                results = Payment.objects.all().filter(payment_method_id__icontains=search_query_payment)
             else:
-                results = results.filter(payment_method_id__icontains=search_query_payment).order_by('order')
+                #results = results.filter(payment_method_id__icontains=search_query_payment).order_by('order')
+                results = results.filter(payment_method_id__icontains=search_query_payment)
         
         if search_query_partner:
         #支払先で絞り込み
             search_flag = True
             if results is None:
-                #results = Partner.objects.all().filter(partner_id=search_query_partner).order_by('order')
-                results = Payment.objects.all().filter(partner_id=search_query_partner).order_by('order')
+                #results = Payment.objects.all().filter(partner_id=search_query_partner).order_by('order')
+                results = Payment.objects.all().filter(partner_id=search_query_partner)
             else:
-                results = results.filter(partner_id=search_query_partner).order_by('order')
-                
+                #results = results.filter(partner_id=search_query_partner).order_by('order')
+                results = results.filter(partner_id=search_query_partner)
+        
+        if search_query_paid:
+        #支払状況で絞り込み
+            if search_query_paid == "0":
+                search_flag = True
+                if results is None:
+                    results = Payment.objects.all().filter(payment_date__isnull=True).order_by('order')
+                else:
+                    results = results.filter(payment_date__isnull=True)
+                #results = results.order_by('partner_id', 'billing_year_month', 'order')
+            elif search_query_paid == "1":
+            #支払済
+                search_flag = True
+                if results is None:
+                    results = Payment.objects.all().filter(payment_date__isnull=False)
+                else:
+                    results = results.filter(payment_date__isnull=False)
+                #results = results.order_by('partner_id', 'billing_year_month', 'order')
         ###
+        
         
         #sort_by = request.GET.get('sort_by')
         #if sort_by is not None:
@@ -247,20 +275,30 @@ def payment_list(request, number=None):
         #if (search_query_trade_division_id or search_query_month):
         if search_flag == True:
         #検索クエリーが入力されている場合のみ
+            
+            #upd180719
+            #並び順を最後に変更
+            #results = results.order_by('partner_id', 'billing_year_month', 'order')
+            results = results.order_by('trade_division_id', 'partner_id', 'billing_year_month', 'order')
+            
             #合計金額
             total_price = results.aggregate(Sum('billing_amount'))
             
             #日付は再び年月のみにする
-            search_query_month_from = search_query_month_from.rstrip("-01")
-            search_query_month_to = search_query_month_to.rstrip("-01")
+            #search_query_month_from = search_query_month_from.rstrip("-01")
+            #search_query_month_to = search_query_month_to.rstrip("-01")
+            #upd180615 上記は１月も消えてしまう
+            search_query_month_from = search_query_month_from[:-3]
+            search_query_month_to = search_query_month_to[:-3]
             #
-            
+                       
             return render(request,
                 'account/payment_list.html',     # 使用するテンプレート
                 {'payments': results, 'partners': partners, 'total_price': total_price, 'search_query_month_from': search_query_month_from,
                   'search_query_month_to': search_query_month_to, 
                   'search_query_trade_division_id': search_query_trade_division_id, 
-                  'search_query_payment': search_query_payment, 'search_query_partner': search_query_partner})         # テンプレートに渡すデータ
+                  'search_query_payment': search_query_payment, 'search_query_partner': search_query_partner, 
+                  'search_query_paid': search_query_paid})         # テンプレートに渡すデータ
         else:
             
                 return render(request,
@@ -286,6 +324,10 @@ def cash_book_list(request):
         
         #form = Cash_BookForm(request.GET or None)
         
+        
+        #import pdb; pdb.set_trace()
+        
+        
         search_settlement_date_from = request.GET.get('q_settlement_date_from', None)
         search_settlement_date_to = request.GET.get('q_settlement_date_to', None)
         
@@ -294,7 +336,7 @@ def cash_book_list(request):
         
         search_account_title = request.GET.get('q_account_title', None)
         search_staff = request.GET.get('q_staff', None)
-        
+        search_not_staff = request.GET.get('q_not_staff', None)
         
         
         #キャッシュに保存された検索結果をセット
@@ -310,6 +352,8 @@ def cash_book_list(request):
             search_account_title = cache.get('search_account_title')
         if search_staff == None:
             search_staff = cache.get('search_staff')
+        if search_not_staff == None:
+            search_not_staff = cache.get('search_not_staff')
         #
         
         #add180524
@@ -322,6 +366,7 @@ def cash_book_list(request):
         cache.set('search_receipt_date_to', search_receipt_date_to, 10800)
         cache.set('search_account_title', search_account_title, 10800)
         cache.set('search_staff', search_staff, 10800)
+        cache.set('search_not_staff', search_not_staff, 10800)
         #
         ###フィルタリング
         results = None
@@ -379,7 +424,14 @@ def cash_book_list(request):
                 results = Cash_Book.objects.all().filter(staff=search_staff).order_by(order_date, 'order')
             else:
                 results = results.filter(staff=search_staff).order_by(order_date, 'order')
-                
+        if search_not_staff:
+        #担当（社員-除外）で絞り込み
+            search_flag = True
+            
+            if results is None:
+                results = Cash_Book.objects.all().exclude(staff=search_not_staff).order_by(order_date, 'order')
+            else:
+                    results = results.exclude(staff=search_not_staff).order_by(order_date, 'order')
         #残高を算出しておく
         if search_flag == True:
             if search_settlement_date_from or search_settlement_date_to:
@@ -410,7 +462,7 @@ def cash_book_list(request):
                  'total_incomes': total_incomes, 'total_expences': total_expences, 'total_balance': total_balance, 
                  'search_settlement_date_from': search_settlement_date_from, 'search_settlement_date_to': search_settlement_date_to, 
                  'search_receipt_date_from': search_receipt_date_from, 'search_receipt_date_to': search_receipt_date_to, 
-                 'search_account_title':search_account_title, 'search_staff':search_staff })         # テンプレートに渡すデータ
+                 'search_account_title':search_account_title, 'search_staff':search_staff, 'search_not_staff':search_not_staff })         # テンプレートに返すデータ
         else:
             return render(request,
                 'account/cash_book_list.html',     # 使用するテンプレート
@@ -618,6 +670,7 @@ def bank_branch_del(request, bank_branch_id):
     
 def payment_del(request, payment_id):
     """支払の削除"""
+    
     payment = get_object_or_404(Payment, pk=payment_id)
     payment.delete()
     return redirect('account:payment_list')

@@ -75,7 +75,10 @@ def set_weekly(request):
         #cash_book_pre_weekly = Cash_Book_Weekly.objects.get(computation_date=assigned_date)
         
         try:
-            cash_book_pre_weekly = Cash_Book_Weekly.objects.get(computation_date=dtm_pre_week.date())
+           
+            #cash_book_pre_weekly = Cash_Book_Weekly.objects.get(computation_date=dtm_pre_week.date()).first()
+            #upd180615
+            cash_book_pre_weekly = Cash_Book_Weekly.objects.filter(computation_date=dtm_pre_week.date()).first()
         except ObjectDoesNotExist:
             cash_book_pre_weekly = None
         

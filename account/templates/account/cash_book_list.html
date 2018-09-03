@@ -43,21 +43,22 @@ table {
         
         </br>
         
-        <label for="id_account_title">科目:</label>
-        <select  class="django-select2" id="id_account_title" style="width:200px;"  name="q_account_title" value="{{ request.GET.q_account_title }}" data-minimum-input-length="0">
-          <option value=""></option>
-          {% for account_title in account_titles %}
-            <option value="{{account_title.id}}"{% if search_account_title == account_title.id|stringformat:"s" %} selected {% endif %}>
-              {{account_title.name}}
-            </option>
-          {% endfor %}
-        </select>
-        
         <label for="id_staff">担当:</label>
         <select  class="django-select2" id="id_staff" style="width:200px;"  name="q_staff" value="{{ request.GET.q_staff }}" data-minimum-input-length="0">
           <option value=""></option>
           {% for staff in staffs %}
             <option value="{{staff.id}}" {% if search_staff == staff.id|stringformat:"s" %} selected {% endif %} >
+               {{staff.staff_name}}
+            </option>
+          {% endfor %}
+          
+        </select>
+        
+        <label for="id_not_staff">担当(除外):</label>
+        <select  class="django-select2" id="id_not_staff" style="width:200px;"  name="q_not_staff" value="{{ request.GET.q_not_staff }}" data-minimum-input-length="0">
+          <option value=""></option>
+          {% for staff in staffs %}
+            <option value="{{staff.id}}" {% if search_not_staff == staff.id|stringformat:"s" %} selected {% endif %} >
                {{staff.staff_name}}
             </option>
           {% endfor %}
@@ -71,10 +72,21 @@ table {
         
         <label for="searchbox">精算日(終了):</label>
         <input class="searchfield" id="search_settlement_date_to" name="q_settlement_date_to" type="text" value="{{search_settlement_date_to}}" placeholder="選択してください..."/>
-        
         <button type="button" class="btn btn-grey400_rsd btn-xs" onclick="clearSettlementDateTo()" >×</button>
         
-        </br><button id="search_submit" type="submit" class="btn btn-grey200_rsd keep-disp" >検索</button>
+        </br>
+        <label for="id_account_title">科目:</label>
+        <select  class="django-select2" id="id_account_title" style="width:200px;"  name="q_account_title" value="{{ request.GET.q_account_title }}" data-minimum-input-length="0">
+          <option value=""></option>
+          {% for account_title in account_titles %}
+            <option value="{{account_title.id}}"{% if search_account_title == account_title.id|stringformat:"s" %} selected {% endif %}>
+              {{account_title.name}}
+            </option>
+          {% endfor %}
+        </select>
+        
+        </br>
+        <button id="search_submit" type="submit" class="btn btn-grey200_rsd keep-disp" >検索</button>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         
         <a href="{% url 'account:cash_book_list_2' %}" class="btn btn-cyan700_ftg keep-disp" target="_blank" onclick="return confirm('集計表を出力します。よろしいですか？')" >集計表作成</a>
@@ -82,10 +94,14 @@ table {
         
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         
+        <!-- 出納帳 -->
+        <a href="{% url 'account:cash_book_list_1' %}" class="btn btn-orange800_ftg keep-disp" target="_blank" onclick="return confirm('出納帳（週単位）を発行します。集計したい期間を指定し、\n検索済みであることを確認してください。\n(必ず精算日を選択し、開始日は必ず月曜日にして下さい。)\n\n実行してよろしいですか？')" >出納帳(週毎)</a>
+        
         <a href="{% url 'account:set_weekly' %}" class="btn btn-lightblue200_rsd keep-disp" style="padding-top:2px; height: 20px;" onclick="return confirm('週末の集計データを作成します。集計したい期間を指定し、検索済みであることを確認してください。(開始日は必ず月曜日にして下さい。)\n本当に実行してよろしいですか？')" >週末データ作成（手動）</a>
         
+        <!-- 出納帳CSV 使えることがあるかもしれないので、このまま残しておく。
         <a href="{% url 'account:cash_book_export' %}" class="btn btn-purple200_rsd keep-disp" style="padding-top:2px; height: 20px;" onclick="return confirm('ＣＳＶを出力します。集計したい期間を指定し、検索済みであることを確認してください。(開始日は必ず月曜日にして下さい。)\n実行してよろしいですか？')" >ＣＳＶ出力</a>
-        
+        -->
          <!--抽出レコードのCSV出力用 pdf化したので今の所不要、但し中越と連携などで必要になるかも？
          <a href="{% url 'account:cash_book_export_extract' %}" class="btn btn-yellow200_rsd keep-disp" style="padding-top:2px; height: 20px;" onclick="return confirm('ＣＳＶを出力します。集計したい期間等条件を指定し、\n検索済みであることを確認してください。\n本当に実行してよろしいですか？')" >ＣＳＶ(絞り込み)</a>
          -->
@@ -111,9 +127,17 @@ table {
     <th>残高(社長)：￥</th><td>{{ balance_president| intcomma:False }}</td>
     &nbsp;&nbsp;&nbsp;
     <th>残高(社員)：￥</th><td>{{ balance_staff| intcomma:False }}</td>
-    
+
+<!--見出し固定用設定-->
+<div style="margin-top : -0px;", class="span11 table-scrollable" >
+ 
+  <style>
+   table { }
+   table th, table td { white-space:nowrap; overflow:hidden; }
+  </style>
+  
     {% autosort cash_books %}
-    <table class="table table-striped table-bordered">
+    <table id="tablefix", class="table table-striped table-bordered">
       <thead>
         <tr>
           <th>{% anchor id "ID" %}</th>
@@ -169,7 +193,7 @@ table {
     
     <!--新規ボタンを下端にも表示する-->
     <a href="{% url 'account:cash_book_add' %}" class="btn btn-primary keep-disp">新規作成</a>
-    
+</div>
 	{# 削除を確認するモーダル ダイアログ #}
   <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -195,9 +219,41 @@ table {
     //select2
     $("#id_account_title").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
     $("#id_staff").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+    $("#id_not_staff").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
     
     //画面位置保持用
     $('form').keepPosition();
+    
+    //見出し固定用設定
+	 var sz = window.parent.screen.width;
+	 var fc = 1;    //デフォルトの固定列数(社長PC基準)
+	 var ht = 610;  //デフォルトの高さ(社長PC基準)
+	 
+	 if (sz != 1920) {
+	 //画面サイズ1920px(社長PC基準)以外は、列固定させる。
+        //fc = 1;  //固定列数
+        fc = 0;  //固定列数  (1 to 0)
+		ht -= 70;
+		sz -= 0;
+	}
+    $('#tablefix').tablefix({width: sz, height: ht, fixRows: 1, fixCols: fc});
+    //
+    
+    //ソート用
+    //$("#sortable").sortable({
+    $("#tablefix tbody").sortable({
+       connectWith: ".connectedSortable",
+       update: function(event, ui) {
+         //var serial = $('#sortable').sortable('serialize');
+         var serial = $(this).sortable('serialize');
+         
+         $.ajax({
+           url: "{% url 'account:cash_book_sort' %}",
+           type: "post",
+           data: { 'content': serial, 'csrfmiddlewaretoken' : '{{ csrf_token }}' } 
+         });
+       },
+    }).disableSelection();
     
     //dateFormat: "yy-mm",
       
@@ -340,18 +396,7 @@ table {
     },0);
   }
   
-  //ソート用
-  $("#sortable").sortable({
-       connectWith: ".connectedSortable",
-       update: function(event, ui) {
-         var serial = $('#sortable').sortable('serialize');
-         $.ajax({
-           url: "{% url 'account:cash_book_sort' %}",
-           type: "post",
-           data: { 'content': serial, 'csrfmiddlewaretoken' : '{{ csrf_token }}' } 
-         });
-       },
-  }).disableSelection();
+  
   
   $(function() {
     $('.del_confirm').on('click', function () {

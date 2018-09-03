@@ -50,6 +50,7 @@ urlpatterns = [
     url(r'^cash_book/del/(?P<cash_book_id>\d+)/$', views.views.cash_book_del, name='cash_book_del'),   # 削除
     url(r'^cash_book/set_weekly_1/$', views.aggregate_weekly.set_weekly, name='set_weekly'),    #週末データ手動作成
     url('cash_book_sort/', views.ajaxs.ajax_cash_book_sort, name='cash_book_sort'),                        #ajax
+    url(r'^cash_book/report_1/$', views.pdf_cash_book.list_1, name='cash_book_list_1'),    #出納帳
     url(r'^cash_book/report_2/$', views.pdf_cash_book.list_2, name='cash_book_list_2'),    #集計表(抽出用)
     url(r'^cash_book/cash_book_export_1/$', views.export_csv.cash_book_export, name='cash_book_export'),     #csv
     url(r'^cash_book/cash_book_export_extract_1/$', views.export_csv.cash_book_export_extract, name='cash_book_export_extract'),     #csv
