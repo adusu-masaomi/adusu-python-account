@@ -25,6 +25,8 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.units import mm
 from django.conf import settings
 from datetime import datetime
+
+import calendar    #月末日取得用  add180911
 #fontname = "IPA Gothic"
 
 PAYMENT_METHOD_TRANSFER = 1       #支払方法（振込）の場合
@@ -766,26 +768,35 @@ def payment_list_2(request):
         
         #振込・振替元
         x += 10
-        if payment.payment_method_id == settings.ID_PAYMENT_METHOD_TRANSFER or \
-             payment.payment_method_id == settings.ID_PAYMENT_METHOD_WITHDRAWAL:
+        
         #振込・振替の場合
-            #支払金額・手数料
-            if (payment.payment_amount is not None and payment.billing_amount is not None and \
-                 payment.payment_amount != billing_amount) or payment.commission is not None :
-                #支払金額
-                x += 13
-                if payment.payment_amount is not None:
-                    payment_amount = "￥" + str("{0:,d}".format(payment.payment_amount))  #桁区切り
-                    p.drawRightString(x*mm, y*mm, payment_amount)
-                #手数料
-                x += 13
-                if payment.commission is not None:
-                    commission = "￥" + str("{0:,d}".format(payment.commission))  #桁区切り
-                    p.drawRightString(x*mm, y*mm, commission)
-                x += 10
-            else:
-                x += 36 
-            #振込・振替元銀行
+        #if payment.payment_method_id == settings.ID_PAYMENT_METHOD_TRANSFER or \
+        #     payment.payment_method_id == settings.ID_PAYMENT_METHOD_WITHDRAWAL:
+        
+           
+            #if payment.id == 391:
+            #  import pdb; pdb.set_trace()
+        
+        #支払金額・手数料
+        if (payment.payment_amount is not None and payment.billing_amount is not None and \
+             payment.payment_amount != billing_amount) or payment.commission is not None :
+            #支払金額
+            x += 13
+            if payment.payment_amount is not None:
+                payment_amount = "￥" + str("{0:,d}".format(payment.payment_amount))  #桁区切り
+                p.drawRightString(x*mm, y*mm, payment_amount)
+            #手数料
+            x += 13
+            if payment.commission is not None:
+                commission = "￥" + str("{0:,d}".format(payment.commission))  #桁区切り
+                p.drawRightString(x*mm, y*mm, commission)
+            x += 10
+        else:
+            x += 36 
+                
+        #振込・振替元銀行(#振込・振替の場合)
+        if payment.payment_method_id == settings.ID_PAYMENT_METHOD_TRANSFER or \
+          payment.payment_method_id == settings.ID_PAYMENT_METHOD_WITHDRAWAL:
             try:
                 bank = Bank.objects.get(pk=payment.source_bank_id)
             except Bank.DoesNotExist:
@@ -795,7 +806,10 @@ def payment_list_2(request):
                 p.drawString(x*mm, y*mm, bank_name)
             x += 7
         else:
-            x += 43
+        
+            #違う！！！
+            x += 7
+            #x += 43
         #
         
         #支払予定日
@@ -940,25 +954,53 @@ def set_title_normal(p,x,y):
     #タイトル
     p.setFont(font_name, 14)
     
-    tmp_date_from = cache.get('search_query_month_from')
-    tmp_date_to = cache.get('search_query_month_to')
+    deadline_string = ""   #締日検索の場合の文字
+    
+    #import pdb; pdb.set_trace()
+    
+    if not cache.get('search_query_pay_month_from') and not cache.get('search_query_pay_month_from'):
+    #請求日で検索の場合
+        deadline_string = "〆"
+    
+        tmp_date_from = cache.get('search_query_month_from')
+        tmp_date_to = cache.get('search_query_month_to')
+    else:
+    #支払日で検索の場合
+        tmp_date_from = cache.get('search_query_pay_month_from')
+        tmp_date_to = cache.get('search_query_pay_month_to')
+    
+    multi_month = False
     
     if tmp_date_from is not None:
         #◯◯◯◯年◯◯月〆の文字を作る
         tmp_year = tmp_date_from[0:4]
         tmp_month = tmp_date_from[5:7]
         
+        if tmp_date_from != tmp_date_to:
+            multi_month = True
+        
+        
         #if search_query_paid == False:
         if not search_query_paid:
-            str_title = tmp_year + "年" + tmp_month + "月" + "〆" + '　支払予定表'
+            #if tmp_date_from == tmp_date_to:
+            if multi_month == False:
+            #単月の場合
+                str_title = tmp_year + "年" + tmp_month + "月" + deadline_string + '　支払予定表'
+            else:
+            #複数月の場合
+                str_title = tmp_year + "年" + tmp_month + "月" + deadline_string
             p.drawString(HEADER_X*mm, HEADER_Y*mm, str_title)
         
             #月が複数指定の場合は、終了月も出力
-            if tmp_date_from != tmp_date_to:
+            #if tmp_date_from != tmp_date_to:
+            if multi_month == True:
+                str_title = '支払予定表'
+                p.drawString((HEADER_X+35)*mm, (HEADER_Y+3)*mm, str_title)
+                
                 #◯◯◯◯年◯◯月〆の文字を作る
                 tmp_year = tmp_date_to[0:4]
                 tmp_month = tmp_date_to[5:7]
-                str_title = "〜" + tmp_year + "年" + tmp_month + "月" + "〆" 
+                str_title = "〜" + tmp_year + "年" + tmp_month + "月" + deadline_string 
                 p.drawString((HEADER_X-5)*mm, (HEADER_Y+6)*mm, str_title)
         else:
             str_title = '支払予定表'
@@ -979,9 +1021,13 @@ def set_title_normal(p,x,y):
     #
     
     #ヘッダー
+    
     y += 2
     x = DETAIL_START_X
-    #p.drawString(x*mm, (y+2)*mm, '未')
+    
+    if multi_month == True:
+        #p.drawString(x*mm, (y+2)*mm, '未')
+        p.drawString((x-8)*mm, (y+2)*mm, '〆')
     
     x += 15
     p.drawString(x*mm, (y+2)*mm, '支払先')
@@ -1030,18 +1076,73 @@ def filter():
 #フィルタリング
     results = None
     
+    #支払日検索用    add180911
+    search_query_pay_month_from = None
+    search_query_pay_month_to = None
+    search_query_pay_month_from_saved = None
+    search_flag_pay_day = False
+    #
     search_query_month_from = None
     search_query_month_to = None
     global multi_month; multi_month = False
     
-    #開始月で抽出
+    ##add180911
+    #支払開始月で抽出
+    search_query_pay_month_from = cache.get('search_query_pay_month_from')
+    if search_query_pay_month_from:
+        search_flag_pay_day = True
+    
+        #◯月１日で検索するようにする
+        search_query_pay_month_from_saved = search_query_pay_month_from
+        search_query_pay_month_from += "-01"
+        if results == None:
+            results = Payment.objects.all().filter(payment_due_date__gte=search_query_pay_month_from)
+        else:
+            results = results.filter(payment_due_date__gte=search_query_pay_month_from)
+    
+    #支払終了月で抽出
+    search_query_pay_month_to = cache.get('search_query_pay_month_to')
+    if search_query_pay_month_to:
+    
+        search_flag_pay_day = True
+    
+        #import pdb; pdb.set_trace()
+    
+        #複数月で検索しているか判定
+        #if search_query_pay_month_from_saved < search_query_pay_month_to:
+        if (search_query_pay_month_from_saved == None) or (search_query_pay_month_from_saved < search_query_pay_month_to):
+            multi_month = True
+    
+        #◯月１日で検索する
+        #search_query_pay_month_to += "-01"
+        #月末日で検索する
+        end_year = int(search_query_pay_month_to[0:4])
+        end_month = int(search_query_pay_month_to[5:7])
+            
+        _, lastday = calendar.monthrange(end_year,end_month)
+        
+        #◯月１日で検索するようにする
+        #search_query_pay_month_to += "-01"
+        #指定月末日で検索するようにする
+        search_query_pay_month_to += "-" + str(lastday)
+                
+        if results == None:
+            results = Payment.objects.all().filter(payment_due_date__lte=search_query_pay_month_to)
+        else:
+            results = results.filter(payment_due_date__lte=search_query_pay_month_to)
+     
+    ##add end
+        
+    #請求開始月で抽出
     search_query_month_from = cache.get('search_query_month_from')
     if search_query_month_from:
         #◯月１日で検索するようにする
         search_query_month_from += "-01"
-        results = Payment.objects.all().filter(billing_year_month__gte=search_query_month_from)
-    
-    #終了月で抽出
+        if results == None:
+            results = Payment.objects.all().filter(billing_year_month__gte=search_query_month_from)
+        else:
+            results = results.filter(billing_year_month__gte=search_query_month_from)
+    #請求終了月で抽出
     search_query_month_to = cache.get('search_query_month_to')
     if search_query_month_to:
         #◯月１日で検索するようにする
@@ -1101,10 +1202,20 @@ def filter():
     
     if results is not None:
     #条件検索なら、並び順を設定
-        if multi_month == False:
-            results = results.order_by('payment_method_id', 'trade_division_id', 'order', 'id')
+        if search_flag_pay_day == False:
+        #請求日検索の場合
+            if multi_month == False:
+                results = results.order_by('payment_method_id', 'trade_division_id', 'order', 'id')
+            else:
+                results = results.order_by('payment_method_id', 'trade_division_id', 'partner_id', 'billing_year_month', 'order', 'id')
         else:
-            results = results.order_by('payment_method_id', 'trade_division_id', 'partner_id', 'billing_year_month', 'order', 'id')
+        #支払日検索の場合
+            if multi_month == False:
+            #単月
+                results = results.order_by('payment_method_id', 'trade_division_id', 'payment_due_date', 'order', 'partner_id')
+            else:
+            #複数月
+                results = results.order_by('payment_method_id', 'trade_division_id', 'partner_id', 'payment_due_date', 'order')
     else:
     #条件なしの場合
         results = Payment.objects.all()

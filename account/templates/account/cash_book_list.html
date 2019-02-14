@@ -377,25 +377,30 @@ table {
      }
   });
   
-   //画面位置保持用
+  //画面位置保持用
   $.fn.keepPosition = function(){
     //cookieに保存する名前（他のページと競合しないようURLを含めるようにする）
     var key = 'keep-position-'+location.pathname;
-    var win = $(window);
+    //var win = $(window);
+    
     this.each(function(){
-        //$(this).on('submit',function(){
-        $(".keep-disp").click(function(){
-			//div_top = bodyDiv.scrollTop();
-			//$.cookie(key, div_top);
-            $.cookie(key, win.scrollTop());
-	    });
+        
+        $(document).on('click', '.keep-disp', function(){
+        
+            if (typeof bodyDiv != 'undefined'){  //←これがないとエラーが出るケース有
+              div_top = bodyDiv.scrollTop();
+              $.cookie(key, div_top);
+            }
+        });
     });
+    
     setTimeout(function(){
-		//bodyDiv.scrollTop($.cookie(key));
-        win.scrollTop($.cookie(key));
+		if (typeof bodyDiv != 'undefined'){  //←これがないとエラーが出るケース有
+            bodyDiv.scrollTop($.cookie(key));
+        }
     },0);
   }
-  
+   
   
   
   $(function() {

@@ -432,6 +432,8 @@ def list_2(request):
             p_month = p_date.month
             p_day = p_date.day
             
+            #import pdb; pdb.set_trace()
+            
             if p_day > 20 and month_total_flag == False:
                 #小計・合計用
                 #y += SEP_Y
@@ -490,7 +492,11 @@ def list_2(request):
         p.drawString(x*mm, y*mm, description)
         
         x = POS_DESCRIPTION_2 + STR_ADJUST
-        description = str(cash_book.description_content)
+        #description = str(cash_book.description_content)
+        #upd180921
+        #最大１０文字とする
+        description = str(cash_book.description_content)[0:10]
+        
         if len(description) > 8:
             p.setFont(font_name, 8)  #フォントを下げる
         
@@ -562,7 +568,10 @@ def list_2(request):
         y += SEP_Y
         
         if p_day > 20:
-            p_month += 1
+            if p_month != 12:
+                p_month += 1
+            else:
+                p_month = 1
         
         x = POS_STAFF + 9
         p.drawRightString(x*mm, y*mm, str(p_month) + '月計')

@@ -20,17 +20,18 @@ table {
     <h3 class="page-header">支払の一覧</h3>
    
     <form type="get" action="" style="margin: 0">
-    
-        <label for="searchbox">請求〆年月(開始):</label>
-        <input class="searchfield" id="search_month_from" name="q_month_from" type="text" value="{{search_query_month_from}}" placeholder="選択してください..."/>
         
-        <button type="button" class="btn btn-grey400_rsd btn-xs" onclick="clearDateFrom()" >×</button>
+        <!-- -->
+        <label for="searchbox">支払年月(開始):</label>
+        <input class="searchfield" id="search_pay_month_from" name="q_pay_month_from" type="text" value="{{search_query_pay_month_from}}" placeholder="未選択..."/>
         
-        <label for="searchbox">請求〆年月(終了):</label>
-        <input class="searchfield" id="search_month_to" name="q_month_to" type="text" value="{{search_query_month_to}}" placeholder="選択してください..."/>
+        <button type="button" class="btn btn-grey400_rsd btn-xs" onclick="clearPayDateFrom()" >×</button>
         
-        <button type="button" class="btn btn-grey400_rsd btn-xs" onclick="clearDateTo()" >×</button>
+        <label for="searchbox">支払年月(終了):</label>
+        <input class="searchfield" id="search_pay_month_to" name="q_pay_month_to" type="text" value="{{search_query_pay_month_to}}" placeholder="未選択..."/>
         
+        <button type="button" class="btn btn-grey400_rsd btn-xs" onclick="clearPayDateTo()" >×</button>
+       
         <label for="id_partner">支払先:</label>
         <select  class="django-select2" id="id_partner" style="width:200px;"  name="q_partner" value="{{ search_query_partner }}" data-minimum-input-length="0">
           <option value=""></option>
@@ -38,6 +39,21 @@ table {
             <option value="{{partner.id}}" {% if search_query_partner == partner.id|stringformat:"s" %} selected {% endif %} >{{partner.name}}</option>
           {% endfor %}
         </select>
+        
+        </br>
+        <!-- -->
+        
+        
+        <label for="searchbox">請求〆年月(開始):</label>
+        <input class="searchfield" id="search_month_from" name="q_month_from" type="text" value="{{search_query_month_from}}" placeholder="未選択..."/>
+        
+        <button type="button" class="btn btn-grey400_rsd btn-xs" onclick="clearDateFrom()" >×</button>
+        
+        <label for="searchbox">請求〆年月(終了):</label>
+        <input class="searchfield" id="search_month_to" name="q_month_to" type="text" value="{{search_query_month_to}}" placeholder="未選択..."/>
+        
+        <button type="button" class="btn btn-grey400_rsd btn-xs" onclick="clearDateTo()" >×</button>
+        
         </br>
         
         <label for="id_paid">支払状況:</label>
@@ -79,8 +95,14 @@ table {
     <a href="{% url 'account:payment_add' %}" class="btn btn-primary keep-disp">新規作成</a>
     <a href="{% url 'account:payment_list_1' %}" class="btn btn-cyan700_ftg keep-disp" target="_blank" >支払集計表</a>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    <a href="{% url 'account:payment_list_2' %}" class="btn btn-lightblue200_ftg keep-disp" target="_blank" >支払集計(中越用)</a>
+    <!--<a href="{% url 'account:payment_list_2' %}" class="btn btn-lightblue200_ftg keep-disp" target="_blank" >支払集計(中越用)</a>-->
     
+    <a href="{% url 'account:payment_list_2' %}" class="btn btn-lightblue200_ftg keep-disp" target="_blank" onclick="return checkDate()">支払集計(中越用)</a>
+    
+    <!--<button onclick="call_counter('account:payment_list_2', 12345);">
+            I update object 12345
+    </button>-->
+        
     <!--スペース-->
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     
@@ -102,7 +124,7 @@ table {
   </style>
   
   {% autosort payments %}
-    <table id="tablefix", class="table table-striped table-bordered">
+    <table id="tablefix", class="table table-striped table-bordered", style="margin-left:0px;width:1280px;">
       <thead>
         <tr>
           <th>{% anchor id "ID" %}</th>
@@ -138,13 +160,17 @@ table {
           {% else %}
             <td align="right"><font color = "#C0C0C0">{{ payment.rough_estimate| default_if_none:EMPTY_MARK }}</font></td>
           {% endif %}
-          <td>{{ payment.payment_method_verbose }}</td>
+	  {% if payment.payment_method_verbose != null %}	
+            <td>{{ payment.payment_method_verbose }}</td>
+          {% else %}
+            <td></td>
+          {% endif %}
           <td align="right">{{ payment.payment_due_date|date:"m/d" }}</td>
           <td align="right">{{ payment.payment_date|date:"m/d" }}</td>
           <td style="width:100px;">{{ payment.note }}</td>
 		  <td>
             <a href="{% url 'account:payment_mod' payment_id=payment.id %}" class="btn btn-default btn-sm keep-disp">編集</a>
-            <!--<a href="{% url 'account:payment_del' payment_id=payment.id %}" class="btn btn-danger btn-sm keep-disp">削除</a>-->
+            <!--<a href="{% url 'account:payment_del' payment_id=payment.id %}" class="btn btn-danger btn-sm ">削除</a>-->
             <button class="btn btn-danger btn-sm del_confirm keep-disp" data-toggle="modal" data-target="#deleteModal"
                   pk="{{ payment.id }}" url="{% url 'account:payment_del' payment_id=payment.id %}">削除</button>
           </td>
@@ -184,10 +210,35 @@ table {
     //画面位置保持用
     $('form').keepPosition();
     
+    
     //dateFormat: "yy-mm-dd"
   
     $.datepicker.setDefaults( $.datepicker.regional[ "ja" ] );
-    //開始月
+    
+    //開始月(支払)
+    $('#search_pay_month_from').datepicker({
+      dateFormat: "yy-mm",
+      //カレンダーを開いた時、入力値の状態にさせる処理
+      beforeShow: function (dateText, inst) { 
+        dateText = document.getElementById("search_pay_month_from").value;
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
+      },
+      onSelect: function(dateText) {
+        //終了月へ開始月をコピー(未入力の場合または開始月が終了月より大きい場合)
+        if (document.getElementById("search_pay_month_to").value == "" || 
+            document.getElementById("search_pay_month_from").value > document.getElementById("search_pay_month_to").value){
+           document.getElementById("search_pay_month_to").value = 
+            document.getElementById("search_pay_month_from").value;
+        }
+        
+        //請求開始終了日をクリア
+        clearBillingDateFromTo();
+      },
+    });
+     //開始月(請求)
     $('#search_month_from').datepicker({
       dateFormat: "yy-mm",
       //カレンダーを開いた時、入力値の状態にさせる処理
@@ -205,10 +256,12 @@ table {
            document.getElementById("search_month_to").value = 
             document.getElementById("search_month_from").value;
         }
+        //支払開始・終了日をクリア
+        clearPaymentDateFromTo();
       },
     });
     
-    //終了月
+    //終了月(請求)
     $('#search_month_to').datepicker({
       dateFormat: "yy-mm",
       //カレンダーを開いた時、入力値の状態にさせる処理
@@ -220,6 +273,26 @@ table {
         }
       },
       onSelect: function(dateText) {
+        //支払開始・終了日をクリア
+        clearPaymentDateFromTo();
+      //  debugger;
+      },
+    });
+    
+    //終了月(支払)
+    $('#search_pay_month_to').datepicker({
+      dateFormat: "yy-mm",
+      //カレンダーを開いた時、入力値の状態にさせる処理
+      beforeShow: function (dateText, inst) { 
+        dateText = document.getElementById("search_pay_month_to").value;
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
+      },
+      onSelect: function(dateText) {
+        //請求開始終了日をクリア
+        clearBillingDateFromTo();
       //  debugger;
       },
     });
@@ -269,6 +342,7 @@ table {
        $("#del_pk").text($(this).attr("pk"));
        $('#del_url').attr('href', $(this).attr("url"));
     });
+   
     
   });
 
@@ -276,21 +350,39 @@ table {
   $.fn.keepPosition = function(){
     //cookieに保存する名前（他のページと競合しないようURLを含めるようにする）
     var key = 'keep-position-'+location.pathname;
-    var win = $(window);
+    //var win = $(window);
+    
     this.each(function(){
-        //$(this).on('submit',function(){
-        $(".keep-disp").click(function(){
-			//div_top = bodyDiv.scrollTop();
-			//$.cookie(key, div_top);
-            $.cookie(key, win.scrollTop());
-	    });
+        
+        $(document).on('click', '.keep-disp', function(){
+        
+            if (typeof bodyDiv != 'undefined'){  //←これがないとエラーが出るケース有
+              div_top = bodyDiv.scrollTop();
+              $.cookie(key, div_top);
+            }
+        });
     });
+    
     setTimeout(function(){
-		//bodyDiv.scrollTop($.cookie(key));
-        win.scrollTop($.cookie(key));
+		if (typeof bodyDiv != 'undefined'){  //←これがないとエラーが出るケース有
+            bodyDiv.scrollTop($.cookie(key));
+        }
     },0);
   }
   
+    
+  //請求開始・終了日をクリア
+  function clearBillingDateFromTo(){
+    document.getElementById("search_month_from").value = "";
+    document.getElementById("search_month_to").value = "";
+  }
+  //支払開始・終了日をクリア
+  function clearPaymentDateFromTo(){
+    document.getElementById("search_pay_month_from").value = "";
+    document.getElementById("search_pay_month_to").value = "";
+  }
+  
+  ////
   //開始日をクリアする
   function clearDateFrom(){
    document.getElementById("search_month_from").value = "";
@@ -298,6 +390,14 @@ table {
   //終了日をクリアする
   function clearDateTo(){
    document.getElementById("search_month_to").value = "";
+  }
+  //支払開始日をクリアする
+  function clearPayDateFrom(){
+   document.getElementById("search_pay_month_from").value = "";
+  }
+  //支払終了日をクリアする
+  function clearPayDateTo(){
+   document.getElementById("search_pay_month_to").value = "";
   }
   
   //取引区分をクリアする
@@ -310,7 +410,17 @@ table {
     document.getElementById("id_payment").selectedIndex = 0;
   }
   
+  function checkDate(){
+    if (document.getElementById("search_month_from").value == "" && document.getElementById("search_month_to").value == ""){
+        alert("「請求〆」の開始・終了年月を入力してください。");
+        return false;
+    }else if (document.getElementById("search_month_from").value != document.getElementById("search_month_to").value) {
+        alert("この帳票は、複数月は指定できません。");
+        return false;
+    }
+  }
   
+            
   //$(function() {
     
   //});

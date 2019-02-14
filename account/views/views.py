@@ -38,6 +38,8 @@ from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 #
 
+import calendar    #月末日取得用  add180911
+
 #ログイン用
 @python_2_unicode_compatible
 class Index(View):
@@ -157,16 +159,28 @@ def payment_list(request, number=None):
     if request.method == 'GET': # If the form is submitted
         
         search_query_trade_division_id = request.GET.get('q_trade_division_id', None)
+        #
+        search_query_pay_month_from = request.GET.get('q_pay_month_from', None)
+        search_query_pay_month_to = request.GET.get('q_pay_month_to', None)
+        #
         search_query_month_from = request.GET.get('q_month_from', None)
         search_query_month_to = request.GET.get('q_month_to', None)
         search_query_payment = request.GET.get('q_payment', None)
         search_query_partner = request.GET.get('q_partner', None)
         search_query_paid = request.GET.get('q_paid', None)
         
-        #キャッシュに保存された検索結果をセット(年月のみ)
+        #キャッシュに保存された検索結果をセット
         if search_query_trade_division_id == None:
             search_query_trade_division_id = cache.get('search_query_trade_division_id')
-            
+        
+        #add180911
+        #支払開始年月
+        if search_query_pay_month_from == None:
+            search_query_pay_month_from = cache.get('search_query_pay_month_from')
+        if search_query_pay_month_to == None:
+            search_query_pay_month_to = cache.get('search_query_pay_month_to')
+        #
+        
         if search_query_month_from == None:
             search_query_month_from = cache.get('search_query_month_from')
             
@@ -184,10 +198,12 @@ def payment_list(request, number=None):
         #
         #キャッシュへ検索結果をセット（最後の引数は、保存したい秒数）
         cache.set('search_query_trade_division_id', search_query_trade_division_id, 86400)
+        #add180911
+        cache.set('search_query_pay_month_from', search_query_pay_month_from, 86400)
+        cache.set('search_query_pay_month_to', search_query_pay_month_to, 86400)
+        #add end
         cache.set('search_query_month_from', search_query_month_from, 86400)
         cache.set('search_query_month_to', search_query_month_to, 86400)
-        
-        #add180524
         cache.set('search_query_trade_division_id', search_query_trade_division_id, 10800)
         cache.set('search_query_payment', search_query_payment, 10800)
         cache.set('search_query_partner', search_query_partner, 10800)
@@ -197,17 +213,58 @@ def payment_list(request, number=None):
         ###フィルタリング
         results = None
         search_flag = False
+        search_flag_pay_day = False
+        multi_month = False
+        search_query_pay_month_from_saved = ""
         
+        
+        if search_query_pay_month_from:
+        #年月で絞り込み(支払開始年月日)
+            search_flag = True
+            search_flag_pay_day = True
+            #◯月１日で検索するようにする
+            search_query_pay_month_from_saved = search_query_pay_month_from
+            search_query_pay_month_from += "-01"
+            results = Payment.objects.all().filter(payment_due_date__gte=search_query_pay_month_from)
+        
+        if search_query_pay_month_to:
+        #年月で絞り込み(支払終了年月日)
+            search_flag = True
+            search_flag_pay_day = True
+            #複数月で検索しているか判定
+            if search_query_pay_month_from_saved < search_query_pay_month_to:
+                multi_month = True
+            #月末日を求める
+            end_year = int(search_query_pay_month_to[0:4])
+            end_month = int(search_query_pay_month_to[5:7])
+            
+            _, lastday = calendar.monthrange(end_year,end_month)
+            
+            #◯月１日で検索するようにする
+            #search_query_pay_month_to += "-01"
+            #指定月末日で検索するようにする
+            search_query_pay_month_to += "-" + str(lastday)
+            
+            #import pdb; pdb.set_trace()
+            
+            if results is None:
+                results = Payment.objects.all().filter(payment_due_date__lte=search_query_pay_month_to)
+            else:
+                results = results.filter(payment_due_date__lte=search_query_pay_month_to)
+                
         if search_query_month_from:
-        #年月で絞り込み(開始)
+        #年月で絞り込み(請求開始年月日)
             search_flag = True
             #◯月１日で検索するようにする
             search_query_month_from += "-01"
             #results = Payment.objects.all().filter(billing_year_month__gte=search_query_month_from).order_by('order')
-            results = Payment.objects.all().filter(billing_year_month__gte=search_query_month_from)
-        
+            if results is None:
+                results = Payment.objects.all().filter(billing_year_month__gte=search_query_month_from)
+            else:
+                results = results.filter(billing_year_month__gte=search_query_month_from)
+                
         if search_query_month_to:
-        #年月で絞り込み(終了)
+        #年月で絞り込み(請求終了年月日)
             search_flag = True
             #◯月１日で検索するようにする
             search_query_month_to += "-01"
@@ -279,8 +336,17 @@ def payment_list(request, number=None):
             #upd180719
             #並び順を最後に変更
             #results = results.order_by('partner_id', 'billing_year_month', 'order')
-            results = results.order_by('trade_division_id', 'partner_id', 'billing_year_month', 'order')
-            
+            if search_flag_pay_day == False:
+                results = results.order_by('trade_division_id', 'partner_id', 'billing_year_month', 'order')
+            else:
+            #支払日検索の場合
+            #add 180911
+                if multi_month == True:
+                #単月の場合、取引区分+支払先マスター順
+                    results = results.order_by('trade_division_id', 'partner_id', 'payment_due_date', 'order')
+                else:
+                #複数月の場合、支払日順
+                    results = results.order_by('payment_due_date', 'order', 'partner_id')
             #合計金額
             total_price = results.aggregate(Sum('billing_amount'))
             
@@ -288,13 +354,22 @@ def payment_list(request, number=None):
             #search_query_month_from = search_query_month_from.rstrip("-01")
             #search_query_month_to = search_query_month_to.rstrip("-01")
             #upd180615 上記は１月も消えてしまう
-            search_query_month_from = search_query_month_from[:-3]
-            search_query_month_to = search_query_month_to[:-3]
+            if search_query_month_from:
+                search_query_month_from = search_query_month_from[:-3]
+            if search_query_month_to:
+                search_query_month_to = search_query_month_to[:-3]
             #
+            if search_query_pay_month_from:
+                search_query_pay_month_from = search_query_pay_month_from[:-3]
+            if search_query_pay_month_to:
+                search_query_pay_month_to = search_query_pay_month_to[:-3]
                        
             return render(request,
                 'account/payment_list.html',     # 使用するテンプレート
-                {'payments': results, 'partners': partners, 'total_price': total_price, 'search_query_month_from': search_query_month_from,
+                {'payments': results, 'partners': partners, 'total_price': total_price, 
+                  'search_query_pay_month_from': search_query_pay_month_from,
+                  'search_query_pay_month_to': search_query_pay_month_to,
+                  'search_query_month_from': search_query_month_from,
                   'search_query_month_to': search_query_month_to, 
                   'search_query_trade_division_id': search_query_trade_division_id, 
                   'search_query_payment': search_query_payment, 'search_query_partner': search_query_partner, 
