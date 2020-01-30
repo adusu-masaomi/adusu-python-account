@@ -1,0 +1,409 @@
+{% extends "base.html" %}
+{% load bootstrap %}
+{% load crispy_forms_tags %}
+
+{% block title %}支払予約の編集{% endblock title %}
+
+{% block content %}
+    <h3 class="page-header">支払予約の編集</h3>
+    {% if payment_reserve_id %}
+    <form action="{% url 'account:payment_reserve_mod' payment_reserve_id=payment_reserve_id %}" method="post" class="form-horizontal" role="form">
+    {% else %}
+    <form action="{% url 'account:payment_reserve_add' %}" method="post" class="form-horizontal" role="form">
+    {% endif %}
+      {% csrf_token %}
+      <!--{{ form|bootstrap_horizontal }}-->
+      {% crispy form %}
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-10" style="margin-left:-10px">
+          <!--<button type="submit" class="btn btn-primary">登録</button> this is not work -->
+        
+          <a href="{% url 'account:payment_reserve_list' %}" type="get" class="btn btn-default ">戻る</a>
+            <!--<div style="display:none">-->
+		      <!--{{ form }}-->
+              <input type='hidden' name='dummy' value={{'1'}}
+		      {% csrf_token %}
+	        <!--</div>-->
+          <!--</form>-->
+          
+        </div>
+       
+    
+      </div>
+    </form>
+    
+    <!--<form action="{% url 'account:payment_reserve_list' %}" type="get">
+  	  <input type="submit" value="戻る" class="btn btn-default">
+      <div style="display:none">
+		{{ form }}
+        <input type='hidden' name='dummy' value={{'1'}}
+		{% csrf_token %}
+	  </div>
+    </form>-->
+    
+<script type="text/javascript" >
+  
+  //あとで共通化？
+  PAYMENT_METHOD_TRANSFER = 1;
+  
+  //支払月定数
+  const PAY_DIVISION_THIS_MONTH_END_ADVANCE = 3;
+  const PAY_DIVISION_THIS_MONTH_END_POSTPONE = 4;
+  
+  
+  $(document).on('ready page:load', function(){
+    
+    //取引先のselect2設定
+    $("#partner_select").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+    
+    $( "#partner_select" ).change(function(e) {
+       var partner_id = $(this)[0].value;
+       
+       if (partner_id != ""){
+         //ajax call 
+         $.ajax({
+            url: "{% url 'account:partner_extract' %}", 
+            type: 'GET',
+            dataType: 'json',
+            data:{
+                'partner_id': partner_id,
+            },
+            success:function(data){
+                //select2を一旦クリアする
+                //$("#trade_division_id_select").empty().trigger('change')
+                
+                
+                //selectへデータをセットする（もっとスマートな方法があるかも・・）
+                for(let i = 0; i < data.HTTPRESPONSE.length; i++) {
+                  //var newOption = new Option(data.HTTPRESPONSE[i].name, data.HTTPRESPONSE[i].id, true, true);
+                  
+                  
+                  //var newOption = new Option(data.HTTPRESPONSE[i].payment_method_id, data.HTTPRESPONSE[i].trade_division_id, 
+                  //         data.HTTPRESPONSE[i].id, true, true);
+                  
+                  //取引区分
+                  var newIndex = data.HTTPRESPONSE[i].trade_division_id + 1;
+                  $("#trade_division_id_select")[0].selectedIndex = newIndex;
+                  
+                  //項目(select2)
+                  //var newOption = new Option(data.HTTPRESPONSE[i].account_title, data.HTTPRESPONSE[i].account_title, true, true);
+                  var newIndex = data.HTTPRESPONSE[i].account_title;
+                  $("#account_title_select").val(newIndex).trigger('change');
+                  
+                  //支払方法
+                  var newIndex = data.HTTPRESPONSE[i].payment_method_id;
+                  $("#payment_method_id")[0].selectedIndex = newIndex;
+                  
+                  
+                  //支払予定日
+                  //土日は考慮していない
+                  var newDay = data.HTTPRESPONSE[i].pay_day;
+                  var pay_day_division = data.HTTPRESPONSE[i].pay_day_division;
+                  //サブルーチンへ
+                  setPayDueDate(newDay, pay_day_division);
+                }
+            },
+         });
+       
+       }
+     });
+    
+    //select2をenterキー押下した場合(リストが閉じられた時)のタブ移動。
+    $( "#partner_select" ).on("select2:close", function (e) {
+      $('[tabindex=2]').focus(); 
+    });
+    
+    //add20012001・・・・・・・
+    //振込先銀行のselect2設定
+     $("#payment_source_bank").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+     $( "#payment_source_bank" ).change(function(e) {
+       var bank_id = $(this)[0].value;
+       
+       //ajax call 
+       $.ajax({
+            url: "{% url 'account:bank_branch_extract' %}", 
+            type: 'GET',
+            dataType: 'json',
+            data:{
+                'bank_id': bank_id,
+            },
+            success:function(data){
+                //select2を一旦クリアする
+                $("#payment_source_bank_branch").empty().trigger('change')
+                
+                //select2へデータをセットする（もっとスマートな方法があるかも・・）
+                for(let i = 0; i < data.HTTPRESPONSE.length; i++) {
+                  var newOption = new Option(data.HTTPRESPONSE[i].name, data.HTTPRESPONSE[i].id, true, true);
+                  $("#payment_source_bank_branch").append(newOption).trigger('change');
+                }
+            },
+       });
+     });
+     //select2をenterキー押下した場合(リストが閉じられた時)のタブ移動。
+     $( "#payment_source_bank" ).on("select2:close", function (e) {
+       $('[tabindex=6]').focus(); 
+     });
+     //
+    $("#payment_source_bank_branch").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+    //select2をenterキー押下した場合(リストが閉じられた時)のタブ移動。
+     $( "#payment_source_bank_branch" ).on("select2:close", function (e) {
+       $('[tabindex=7]').focus(); 
+     });
+     //add end 
+    
+    //勘定科目のselect2設定
+    $("#account_title_select").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+    //select2をenterキー押下した場合(リストが閉じられた時)のタブ移動。
+    $( "#account_title_select" ).on("select2:close", function (e) {
+      $('[tabindex=4]').focus(); 
+    });
+    
+    //請求日の登録後は、１日の日付が入っているので、削り取る。
+    var strDate = $( ".datepicker_1" )[0].value;
+    if  (strDate != ""){
+      if (strDate.length == 10){
+        var strYearMonth = strDate.substr(0, 7);
+        $( ".datepicker_1" )[0].value = strYearMonth;
+      }
+    }
+    //
+    
+    //datepickerの設定
+    var dateFormatMonth = 'yy-mm';
+    var dateFormatNormal = 'yy-mm-dd';
+    
+    $.datepicker.setDefaults( $.datepicker.regional[ "ja" ] );
+    
+    //請求〆日のdatepicker
+    $('#billing_year_month_picker').datepicker({
+      dateFormat: dateFormatMonth,
+      //カレンダーを開いた時、入力値の状態にさせる処理
+      beforeShow: function (dateText, inst) { 
+        dateText = document.getElementById("billing_year_month_picker").value;
+        if (dateText.length == 7){
+          dateText += "-01";
+        }
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
+      },
+      //
+      //保存した時、日付に１を自動セットさせる
+      onClose: function(dateText, inst) { 
+        $(this).datepicker('setDate', new Date(inst.selectedYear, inst.selectedMonth, 1));
+        //次のコントロールへフォーカスを移す
+        $('[tabindex=1]').focus(); 
+      }
+      // You can put more options here.
+    });
+    //
+    //支払予定日のdatepicker
+     $('#payment_due_date_picker').datepicker({
+      dateFormat: dateFormatNormal,
+      //カレンダーを開いた時、入力値の状態にさせる処理
+      beforeShow: function (dateText, inst) { 
+        dateText = document.getElementById("payment_due_date_picker").value;
+        //if (dateText.length == 7){
+        //  dateText += "-01";
+        //}
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
+      },
+      onClose: function(dateText, inst) { 
+        //次のコントロールへフォーカスを移す
+        $('[tabindex=8]').focus(); 
+      }
+      // You can put more options here.
+    });
+    //
+    //支払日のdatepicker
+     $('#payment_date_picker').datepicker({
+      dateFormat: dateFormatNormal,
+      //カレンダーを開いた時、入力値の状態にさせる処理
+      beforeShow: function (dateText, inst) { 
+        dateText = document.getElementById("payment_date_picker").value;
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
+      },
+      // You can put more options here.
+    });
+    
+    
+    //ENTER→TABキーに変換する処理。
+    //$('[tabindex]').keydown(function (e) {
+    //  if (e.keyCode == 13 || e.keyCode == 9) {
+        
+    //	var tabindex = parseInt($(this).attr('tabindex'));
+    //    $('[tabindex='+(tabindex+1)+']').focus();
+        
+    //    return false;
+    //  }
+    
+    //});
+    
+    //
+  });
+  
+  //支払予定日をセット
+  function setPayDueDate(newDay, pay_day_division){
+    document.getElementById("payment_due_date_picker").value = "";
+    var payDate = "";
+    
+    //マスターの支払日登録済(or月末)かつ請求年月入力済？
+    if ((newDay != 0) || (pay_day_division == PAY_DIVISION_THIS_MONTH_END_ADVANCE || pay_day_division == PAY_DIVISION_THIS_MONTH_END_POSTPONE)){
+      if (document.getElementById("billing_year_month_picker").value != ""){ 
+        
+        //年月を数値でセットしておく
+        strTemp = document.getElementById("billing_year_month_picker").value;
+        payYear = strTemp.slice(0,4);
+        intYear = parseInt(payYear);
+        payMonth = strTemp.slice(-2);
+        intMonth = parseInt(payMonth);
+        //
+        
+        
+        switch (pay_day_division) {
+          case 0:
+          //当月
+            //土日祝を考慮して日にちを加減する
+            var adjustDate = adjustHoliday(pay_day_division, intYear, intMonth, newDay);
+            newDay = adjustDate[2];  //日にちのみ取得でOK
+            
+            payDate = document.getElementById("billing_year_month_picker").value + "-" + newDay;
+            document.getElementById("payment_due_date_picker").value = payDate;
+            break;
+          case 1:
+          case 2:
+          case PAY_DIVISION_THIS_MONTH_END_ADVANCE:
+          case PAY_DIVISION_THIS_MONTH_END_POSTPONE:
+          //翌々月(翌月含む)、月末
+                          
+            if (pay_day_division == 1){
+            //翌月
+              intMonth += 1;
+              
+              if (intMonth > 12){
+                intYear += 1;
+                intMonth -= 12;
+              }
+            }else if (pay_day_division == 2) {
+            //翌々月
+              intMonth += 2;
+              
+              if (intMonth > 12){
+                intYear += 1;
+                intMonth -= 12;
+              }
+            }
+                          
+            //月末の処理
+            if (pay_day_division == PAY_DIVISION_THIS_MONTH_END_ADVANCE || pay_day_division == PAY_DIVISION_THIS_MONTH_END_POSTPONE){
+              var date = new Date(intYear, intMonth, 0);
+              
+              newDay = date.getDate();
+            }
+            
+            //土日祝を考慮して日にちを加減する
+            var adjustDate = adjustHoliday(pay_day_division, intYear, intMonth, newDay);
+            
+            //newDay = adjustHoliday(pay_day_division, intYear, intMonth, newDay);
+            newDay = adjustDate[2];
+            intYear = adjustDate[0];
+            intMonth = adjustDate[1];
+            //
+            
+            payMonth = ("0" + intMonth).slice(-2);
+            payYearMonth = intYear.toString() + "-" + payMonth;
+            
+            document.getElementById("payment_due_date_picker").value = payYearMonth + "-" + newDay;
+                          
+            break;
+          default:
+            break;
+        }
+      }
+    }
+                  
+  
+  }
+  
+  //土日を考慮する
+  function adjustHoliday(pay_day_division, intYear, intMonth, newDay){
+    
+    //月は０からなので注意
+    var date = new Date(intYear, intMonth -1, newDay);
+    
+    var step;
+    //ループ4回
+    for (step = 1; step < 5; step++) {
+        //土日祝？
+        //if (date.getDay() == 6 || date.getDay() == 0){
+        if (date.getDay() == 6 || date.getDay() == 0 || Holiday.getHolidayName(date) != ""){
+          //if (pay_day_division != PAY_DIVISION_THIS_MONTH_END_ADVANCE && pay_day_division != PAY_DIVISION_THIS_MONTH_END_POSTPONE){
+          if (pay_day_division != PAY_DIVISION_THIS_MONTH_END_ADVANCE ){
+            date = new Date(intYear, intMonth-1, newDay + step);
+          }else if(pay_day_division == PAY_DIVISION_THIS_MONTH_END_ADVANCE){
+          //月末(前倒)
+            date = new Date(intYear, intMonth-1, newDay - step);
+          //}else if(pay_day_division == PAY_DIVISION_THIS_MONTH_END_POSTPONE){
+          //月末(先送)
+          //  date = new Date(intYear, intMonth, newDay + step);
+          }
+          
+        }else{
+          break;
+        }
+    }
+    
+    
+    newDay = date.getDate();
+    newDay = ("0" + newDay).slice(-2);  //フォーマット
+    
+    intYear = date.getFullYear();
+    intMonth = date.getMonth() + 1;
+    
+    //return newDay;
+    return [intYear, intMonth, newDay];
+    
+  }
+  
+  //支払金額を概算へコピーする
+  function setAmount(){
+    
+    //if (document.getElementById("payment_method_id").value != PAYMENT_METHOD_TRANSFER){
+      document.getElementById("rough_estimate").value = document.getElementById("billing_amount").value;
+    //}
+  }
+  
+  //支払手数料を自動セット
+  function setCommission(){
+    var billing_amount = 0;
+    var payment_amount = 0;
+    
+    if (document.getElementById("billing_amount").value != undefined){
+      billing_amount = parseInt(document.getElementById("billing_amount").value);
+    }
+    if (document.getElementById("payment_amount").value != undefined){
+      payment_amount = parseInt(document.getElementById("payment_amount").value);
+    }
+    
+    //振込の場合のみ
+    if (document.getElementById("payment_method_id").value == 1){
+      if ((payment_amount > 0 && billing_amount > payment_amount)){
+        document.getElementById("commission").value = document.getElementById("billing_amount").value - 
+           document.getElementById("payment_amount").value;
+      }
+    }
+  }
+ 
+</script>
+
+
+
+
+{% endblock content %}

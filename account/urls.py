@@ -61,5 +61,21 @@ urlpatterns = [
     url(r'^cash_book_weekly/add/$', views.views.cash_book_weekly_edit, name='cash_book_weekly_add'),  # 登録
     url(r'^cash_book_weekly/mod/(?P<cash_book_weekly_id>\d+)/$', views.views.cash_book_weekly_edit, name='cash_book_weekly_mod'),  # 修正
     url(r'^cash_book_weekly/del/(?P<cash_book_weekly_id>\d+)/$', views.views.cash_book_weekly_del, name='cash_book_weekly_del'),   # 削除
-    
+    #支払
+    url(r'^payment_reserve/$', views.views.payment_reserve_list, name='payment_reserve_list'),   # 一覧
+    url(r'^payment_reserve/add/$', views.views.payment_reserve_edit, name='payment_reserve_add'),  # 登録
+    url(r'^payment_reserve/mod/(?P<payment_reserve_id>\d+)/$', views.views.payment_reserve_edit, name='payment_reserve_mod'),  # 修正
+    url(r'^payment_reserve/del/(?P<payment_reserve_id>\d+)/$', views.views.payment_reserve_del, name='payment_reserve_del'),   # 削除
+    #資金繰り表
+    url(r'^cash_flow_header/$', views.views.cash_flow_header_list, name='cash_flow_header_list'),   # 一覧
+    url(r'^cash_flow_header/mod/(?P<cash_flow_header_id>\d+)/$', views.views.cash_flow_header_edit, name='cash_flow_header_mod'),  # 修正
+    url(r'^cash_flow_header/report_1/$', views.pdf_cash_flow_list.cash_flow_list_1, name='cash_flow_list_1'),    #資金繰り表1
+    url(r'^cash_flow_header/set_cash_flow_1/$', views.aggregate_cash_flow.set_cash_flow, name='set_cash_flow'),  #資金繰り見出データ作成
+    #貸借データ
+    url(r'^balance_sheet/$', views.views.balance_sheet_list, name='balance_sheet_list'),   # 一覧
+    url(r'^balance_sheet/add/$', views.views.balance_sheet_edit, name='balance_sheet_add'),  # 登録
+    url(r'^balance_sheet/mod/(?P<balance_sheet_id>\d+)/$', views.views.balance_sheet_edit, name='balance_sheet_mod'),  # 修正
+    url(r'^balance_sheet/del/(?P<balance_sheet_id>\d+)/$', views.views.balance_sheet_del, name='balance_sheet_del'),   # 削除
+    #貸借表
+    url(r'^balance_sheet_tally/$', views.views.balance_sheet_tally_list, name='balance_sheet_tally_list'),   # 一覧
 ]

@@ -9,7 +9,11 @@ from account.models import Account_Title
 from account.models import Bank
 from account.models import Bank_Branch
 from account.models import Payment
+from account.models import Payment_Reserve
 #
+
+from account.views import set_cash_flow_detail as Set_Cash_Flow_Detail  #add200121
+
 from django.http import Http404, HttpResponse, QueryDict
 #from django.template import RequestContext
 from django.conf import settings
@@ -19,6 +23,7 @@ from datetime import datetime, date, timedelta
 from account.views import jholiday
 from dateutil.relativedelta import relativedelta
 
+from copy import deepcopy
 
 #for debug
 #import pdb; pdb.set_trace()
@@ -60,7 +65,6 @@ def automake_payment(request):
         
         ###取引先から支払データを一括作成する。
         partners = Partner.objects.all().order_by('order')
-        
         
         for partner in partners:
             
@@ -132,7 +136,11 @@ def automake_payment(request):
                 if payment.payment_method_id == settings.ID_PAYMENT_METHOD_TRANSFER or \
                       payment.payment_method_id == settings.ID_PAYMENT_METHOD_WITHDRAWAL:
                     payment.source_bank = partner.source_bank
-                
+                    
+                    #add200120
+                    #支店もセット
+                    if partner.source_bank_branch:
+                        payment.source_bank_branch = partner.source_bank_branch
                 #固定費
                 if partner.fixed_content_id is CONTENT_ASSIGNED_MONTH_WITH_AMOUNT:  
                     #固定フラグ（指定月-固定費）
@@ -218,9 +226,55 @@ def automake_payment(request):
                 #
                 
                 payment.save()
+                
+                #add200121
+                #資金繰明細データも保存する
+                Set_Cash_Flow_Detail.set_cash_flow_detail(payment.id)
         
+        #add191220
+        #支払予約データがあれば上書or追加する
+        payment_reserves = Payment_Reserve.objects.all().filter(billing_year_month=assigned_date)
         
-    #import pdb; pdb.set_trace()
+        for payment_reserve in payment_reserves:
+          
+          try:
+            payment = Payment.objects.get(billing_year_month=assigned_date, 
+                                       partner_id=payment_reserve.partner_id)
+            
+            #一括コピーできる方法があればよいが..
+            #payment.billing_year_month = payment_reserve.billing_year_month
+            payment.trade_division_id = payment_reserve.trade_division_id
+            #payment.partner_id = payment_reserve.partner_id
+            payment.account_title_id = payment_reserve.account_title_id
+            payment.billing_amount = payment_reserve.billing_amount
+            payment.rough_estimate = payment_reserve.rough_estimate
+            payment.payment_method_id = payment_reserve.payment_method_id
+            payment.source_bank_id = payment_reserve.source_bank_id
+            payment.payment_due_date = payment_reserve.payment_due_date
+            #
+            payment.save()
+            
+            #add200121
+            #資金繰明細データも保存する
+            Set_Cash_Flow_Detail.set_cash_flow_detail(payment.id)
+            
+          except Payment.DoesNotExist:
+            #一括コピーできる方法があればよいが..
+            payment.billing_year_month = payment_reserve.billing_year_month
+            payment.trade_division_id = payment_reserve.trade_division_id
+            payment.partner_id = payment_reserve.partner_id
+            payment.account_title_id = payment_reserve.account_title_id
+            payment.billing_amount = payment_reserve.billing_amount
+            payment.rough_estimate = payment_reserve.rough_estimate
+            payment.payment_method_id = payment_reserve.payment_method_id
+            payment.source_bank_id = payment_reserve.source_bank_id
+            payment.payment_due_date = payment_reserve.payment_due_date
+            #
+            payment.save()
+             
+            #add200121
+            #資金繰明細データも保存する
+            Set_Cash_Flow_Detail.set_cash_flow_detail(payment.id)
     
     return redirect('account:payment_list')
 

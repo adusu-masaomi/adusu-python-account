@@ -3,6 +3,14 @@
 <link rel="stylesheet" type="text/css" href="{% static '/static/css/update-style.css' %}" />
 <!DOCTYPE html>
 
+<style>
+body > .container {
+  padding-top: 0px;
+  margin-left: 30px;
+  background-color: white;
+}
+</style>
+
 <html>
     <head>
         <meta charset="UTF-8" />
@@ -65,10 +73,10 @@
         }
         </style>
     </head>
-    <body>
-        <div class="navbar navbar-inverse navbar-fixed-top">
+    <body >
+        <div class="navbar navbar-inverse navbar-fixed-top" style="margin-left: -0%;">
             <div class="container">
-                <div class="navbar-header">
+                <div class="navbar-header" >
                     <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
                         <span class="icon-bar"></span>
                         <span class="icon-bar"></span>
@@ -76,7 +84,7 @@
                     </button>
                     <a class="navbar-brand" href="{% url 'account:index' %}">ADUSU会計管理Webシステム</a>
                 </div>
-                <div class="collapse navbar-collapse">
+                <div class="collapse navbar-collapse ">
                     <ul class="nav navbar-nav">
                         <li class="dropdown">
                           <a href="#" class="dropdown-toggle" data-toggle="dropdown">マスター管理<b class="caret"></b></a>
@@ -91,7 +99,8 @@
                           <a href="#" class="dropdown-toggle" data-toggle="dropdown">支払管理<b class="caret"></b></a>
 						  <ul class="dropdown-menu">
                             <li><a href="{% url 'account:payment_list' %}">支払データ管理</a></li>
-						  </ul>
+                            <li><a href="{% url 'account:balance_sheet_list' %}">貸借データ管理</a></li>
+                          </ul>
 						</li>
                         <li class="dropdown">
                           <a href="#" class="dropdown-toggle" data-toggle="dropdown">出納帳管理<b class="caret"></b></a>
@@ -99,6 +108,19 @@
                             <li><a href="{% url 'account:cash_book_list' %}">出納帳データ管理</a></li>
                             <li><a href="{% url 'account:cash_book_weekly_list' %}">週末データ管理</a></li>
 						  </ul>
+						</li>
+                        <li class="dropdown">
+                          <a href="#" class="dropdown-toggle" data-toggle="dropdown">予約管理<b class="caret"></b></a>
+						  <ul class="dropdown-menu">
+                            <li><a href="{% url 'account:payment_reserve_list' %}">支払予約データ管理</a></li>
+						  </ul>
+						</li>
+                        <li class="dropdown">
+                          <a href="#" class="dropdown-toggle" data-toggle="dropdown">資金管理<b class="caret"></b></a>
+						  <ul class="dropdown-menu">
+                            <li><a href="{% url 'account:cash_flow_header_list' %}">資金繰り表</a></li>
+                            <li><a href="{% url 'account:balance_sheet_tally_list' %}">貸借表</a></li>
+                          </ul>
 						</li>
                         <!--<li><a href="#about">About</a></li>-->
                         <!--<li><a href="#github">Github</a></li>-->

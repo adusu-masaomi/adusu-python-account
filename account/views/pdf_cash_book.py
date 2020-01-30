@@ -55,7 +55,9 @@ POS_X_INCOMES = 200
 POS_X_EXPENCES = 230
 POS_X_EXPENCES_PRESIDENT = 260
 
-POS_RIGHT_SIDE_C = 290
+#POS_RIGHT_SIDE_C = 290
+POS_RIGHT_SIDE_C = 283   #UPD190824
+POS_NOTE = 290  #備考(軽減税率などの場合)の場所
 #####
 
 #DETAIL_START_X = 20
@@ -67,8 +69,9 @@ SEP_Y = 6
     
 #縦線用定数
 POS_LEFT_SIDE = 18    #左端
-POS_RIGHT_SIDE = 203  #右端
-    
+#POS_RIGHT_SIDE = 203  #右端
+POS_RIGHT_SIDE = 197    #右端  #UPD190824
+POS_RIGHT_SIDE_E = 203  #右端(抽出用)   #ADD190927
 STR_ADJUST = 2    #文字位置調整分
     
 POS_DATE = 18
@@ -246,6 +249,14 @@ def list_1(request):
                     x = POS_X_EXPENCES + POS_X_ADJUST_STR
                     str_tmp = "(社長分)"
                     p.drawString(x*mm, y*mm, str_tmp)
+            #test 
+            #add190824
+            #軽減税率or10月過ぎて8%なら(あくまでも入力値により判断)記号出す
+            if cash_book.reduced_tax_flag == 1:
+              x = POS_NOTE - 6  #これ以上右にすると欠ける
+              str_tmp = "※税８％"
+              p.drawString(x*mm, y*mm, str_tmp)
+            #
             #罫線
             START_DETAIL_Y = y - 4.5
             p.rect(POS_LEFT_SIDE_C*mm, START_DETAIL_Y*mm, (POS_RIGHT_SIDE_C-POS_LEFT_SIDE_C)*mm, (SEP_Y)*mm, fill=0) #枠
@@ -422,27 +433,46 @@ def list_2(request):
         
         d = p_date.strftime('%m/%d')
         
+        differMonth = False;  #add191217
+        
         if d is not None:
             #月またがりの場合に小計を出す
+            
+            preMonth = None
             
             if p_month != p_date.month:
                 month_total_flag = False
                 last_month_total_flag = True
-            
+                
+                #add191217
+                #月が変わった場合に小計を出すようにする
+                if p_month != 0:
+                    differMonth = True
+                    preMonth = p_month
+                #import pdb; pdb.set_trace()    #test takano
+                
             p_month = p_date.month
             p_day = p_date.day
             
             #import pdb; pdb.set_trace()
+            #p_month != 0
             
-            if p_day > 20 and month_total_flag == False:
+            #if p_day > 20 and month_total_flag == False:
+            if differMonth:
                 #小計・合計用
                 #y += SEP_Y
                 
-                #２１日目が最初に来る場合があるので、その場合は出力しないようにする
+                #import pdb; pdb.set_trace()    #test takano
+                differMonth = False
+                
+                
+                ##２１日目が最初に来る場合があるので、その場合は出力しないようにする
+                #１日目が最初に来る場合があるので、その場合は出力しないようにする
                 if i != 1:
                 
                     x = POS_STAFF + 9
-                    p.drawRightString(x*mm, y*mm, str(p_month) + '月計')
+                    #p.drawRightString(x*mm, y*mm, str(p_month) + '月計')
+                    p.drawRightString(x*mm, y*mm, str(preMonth) + '月計')  #upd191217
     
                     #収入金額合計
                     x = POS_INCOMES + 21 + STR_ADJUST
@@ -462,8 +492,11 @@ def list_2(request):
                     p.line(POS_LEFT_SIDE*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_LEFT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) 
                     p.line(POS_INCOMES*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_INCOMES*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) 
                     p.line(POS_EXPENCES*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_EXPENCES*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) 
-                    p.line(POS_RIGHT_SIDE*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_RIGHT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm)  #右端の縦線
-                    p.line(POS_LEFT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm, POS_RIGHT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #横線 
+                    #p.line(POS_RIGHT_SIDE*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_RIGHT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm)  #右端の縦線
+                    #upd191218
+                    p.line(POS_RIGHT_SIDE_E*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_RIGHT_SIDE_E*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm)  #右端の縦線
+                    
+                    p.line(POS_LEFT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm, POS_RIGHT_SIDE_E*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #横線 
                     
                     y += SEP_Y
                     #
@@ -558,8 +591,12 @@ def list_2(request):
         p.line(POS_INCOMES*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_INCOMES*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) 
         p.line(POS_EXPENCES*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_EXPENCES*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) 
         
-        p.line(POS_RIGHT_SIDE*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_RIGHT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm)  #右端の縦線
-        p.line(POS_LEFT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm, POS_RIGHT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #横線 
+        #UPD190926
+        p.line(POS_RIGHT_SIDE_E*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_RIGHT_SIDE_E*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm)  #右端の縦線
+        p.line(POS_LEFT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm, POS_RIGHT_SIDE_E*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #横線 
+        
+        #p.line(POS_RIGHT_SIDE*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_RIGHT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm)  #右端の縦線
+        #p.line(POS_LEFT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm, POS_RIGHT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #横線 
         #
         
     
@@ -592,8 +629,13 @@ def list_2(request):
         p.line(POS_LEFT_SIDE*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_LEFT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) 
         p.line(POS_INCOMES*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_INCOMES*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) 
         p.line(POS_EXPENCES*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_EXPENCES*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) 
-        p.line(POS_RIGHT_SIDE*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_RIGHT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm)  #右端の縦線
-        p.line(POS_LEFT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm, POS_RIGHT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #横線 
+        
+        #UPD190926
+        p.line(POS_RIGHT_SIDE_E*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_RIGHT_SIDE_E*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm)  #右端の縦線
+        p.line(POS_LEFT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm, POS_RIGHT_SIDE_E*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #横線 
+        
+        #p.line(POS_RIGHT_SIDE*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_RIGHT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm)  #右端の縦線
+        #p.line(POS_LEFT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm, POS_RIGHT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #横線 
         #
         month_total_flag = True
         
@@ -623,8 +665,13 @@ def list_2(request):
     #p.line(POS_STAFF*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_STAFF*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm)
     p.line(POS_INCOMES*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_INCOMES*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) 
     p.line(POS_EXPENCES*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_EXPENCES*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) 
-    p.line(POS_RIGHT_SIDE*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_RIGHT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm)  #右端の縦線
-    p.line(POS_LEFT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm, POS_RIGHT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #横線 
+    
+    #UPD190926
+    p.line(POS_RIGHT_SIDE_E*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_RIGHT_SIDE_E*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm)  #右端の縦線
+    p.line(POS_LEFT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm, POS_RIGHT_SIDE_E*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #横線
+    
+    #p.line(POS_RIGHT_SIDE*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_RIGHT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm)  #右端の縦線
+    #p.line(POS_LEFT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm, POS_RIGHT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #横線 
     #
     
     
@@ -836,13 +883,14 @@ def set_title_2(p,x,y):
 #    y += SEP_Y+3
     
     #ヘッダ部罫線
-    p.rect(POS_LEFT_SIDE*mm, (START_Y-1)*mm, (POS_RIGHT_SIDE-POS_LEFT_SIDE)*mm, POS_HEADER_HEIGHT*mm, fill=0) #枠
+    #p.rect(POS_LEFT_SIDE*mm, (START_Y-1)*mm, (POS_RIGHT_SIDE-POS_LEFT_SIDE)*mm, POS_HEADER_HEIGHT*mm, fill=0) #枠
+    p.rect(POS_LEFT_SIDE*mm, (START_Y-1)*mm, (POS_RIGHT_SIDE_E-POS_LEFT_SIDE)*mm, POS_HEADER_HEIGHT*mm, fill=0) #枠
     p.line(POS_ACCOUNT_TITLE*mm, (START_Y-1)*mm, POS_ACCOUNT_TITLE*mm, ((START_Y-1) + POS_HEADER_HEIGHT)*mm) 
     p.line(POS_DESCRIPTION*mm, (START_Y-1)*mm, POS_DESCRIPTION*mm, ((START_Y-1) + POS_HEADER_HEIGHT)*mm) 
     p.line(POS_STAFF*mm, (START_Y-1)*mm, POS_STAFF*mm, ((START_Y-1) + POS_HEADER_HEIGHT)*mm) 
     p.line(POS_INCOMES*mm, (START_Y-1)*mm, POS_INCOMES*mm, ((START_Y-1) + POS_HEADER_HEIGHT)*mm) 
-    p.line(POS_EXPENCES*mm, (START_Y-1)*mm, POS_EXPENCES*mm, ((START_Y-1) + POS_HEADER_HEIGHT)*mm) 
-    
+    p.line(POS_EXPENCES*mm, (START_Y-1)*mm, POS_EXPENCES*mm, ((START_Y-1) + POS_HEADER_HEIGHT)*mm)
+        
     return p, x, y
 
 def filter_1():

@@ -173,7 +173,11 @@ table {
           {% endif %}
           
           {% if cash_book.expences != null %}
-            <td align="right">￥{{ cash_book.expences| intcomma:False }}</td>
+              {% if cash_book.reduced_tax_flag != 1 %}
+                  <td align="right">￥{{ cash_book.expences| intcomma:False }}</td>
+              {% else %}
+                  <td align="right"><font color = "blue" >￥{{ cash_book.expences| intcomma:False }}</font></td>
+              {% endif %}
           {% else %}
             <td align="right">{{ cash_book.expences| default_if_none:EMPTY_MARK }}</td>
           {% endif %}
@@ -333,6 +337,13 @@ table {
       },
     });
    
+    $('.del_confirm').on('click', function () {
+       //debugger;
+    
+       $("#del_pk").text($(this).attr("pk"));
+       $('#del_url').attr('href', $(this).attr("url"));
+    });
+   
   });
   
   //領収日（開始）をクリアする
@@ -403,12 +414,9 @@ table {
    
   
   
-  $(function() {
-    $('.del_confirm').on('click', function () {
-       $("#del_pk").text($(this).attr("pk"));
-       $('#del_url').attr('href', $(this).attr("url"));
-    });
-  });
+  //$(function() {
+    
+  //});
 </script>
 
 {% endblock content %}

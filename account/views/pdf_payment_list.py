@@ -1086,22 +1086,39 @@ def filter():
     search_query_month_to = None
     global multi_month; multi_month = False
     
-    ##add180911
+    global search_query_paid
+    search_query_paid = cache.get('search_query_paid')
+    
+    #del190411
+    #支払開始日の絞り込みは無しにする（あくまでも指定月以下で未払のものを検索）
     #支払開始月で抽出
     search_query_pay_month_from = cache.get('search_query_pay_month_from')
     if search_query_pay_month_from:
         search_flag_pay_day = True
-    
         #◯月１日で検索するようにする
         search_query_pay_month_from_saved = search_query_pay_month_from
         search_query_pay_month_from += "-01"
-        if results == None:
-            results = Payment.objects.all().filter(payment_due_date__gte=search_query_pay_month_from)
-        else:
-            results = results.filter(payment_due_date__gte=search_query_pay_month_from)
+        
+        #test del 191216
+            
+        if search_query_paid and search_query_paid == "1":
+            #upd190514
+            
+            #支払済のものだけ検索した場合に、検索開始月のフィルターを有効にする
+            if results == None:
+                results = Payment.objects.all().filter(payment_due_date__gte=search_query_pay_month_from)
+                #test 191216
+                #results = Payment.objects.all().filter(payment_date__gte=search_query_pay_month_from)
+            else:
+                results = results.filter(payment_due_date__gte=search_query_pay_month_from)
+                #test 191216
+                #results = results.filter(payment_date__gte=search_query_pay_month_from)
     
     #支払終了月で抽出
     search_query_pay_month_to = cache.get('search_query_pay_month_to')
+    
+    #import pdb; pdb.set_trace()
+    
     if search_query_pay_month_to:
     
         search_flag_pay_day = True
@@ -1128,8 +1145,14 @@ def filter():
                 
         if results == None:
             results = Payment.objects.all().filter(payment_due_date__lte=search_query_pay_month_to)
+            #test 191216
+            #results = Payment.objects.all().filter(payment_date__lte=search_query_pay_month_to)
         else:
             results = results.filter(payment_due_date__lte=search_query_pay_month_to)
+            #test 191216
+            #results = results.filter(payment_date__lte=search_query_pay_month_to)
+     
+        
      
     ##add end
         
@@ -1174,6 +1197,9 @@ def filter():
      
     #支払方法で抽出
     search_query_payment = cache.get('search_query_payment')
+    
+    #import pdb; pdb.set_trace()
+    
     if search_query_payment:
         if results == None:
             results = Payment.objects.all().filter(payment_method_id=search_query_payment)
@@ -1181,9 +1207,10 @@ def filter():
             results = results.filter(payment_method_id=search_query_payment)
      
     
-    global search_query_paid
-    search_query_paid = cache.get('search_query_paid')
+    #global search_query_paid
+    #search_query_paid = cache.get('search_query_paid')
     if search_query_paid:
+        
         #支払状況で絞り込み
         if search_query_paid == "0":
             search_flag = True
@@ -1198,8 +1225,18 @@ def filter():
                 results = Payment.objects.all().filter(payment_date__isnull=False)
             else:
                 results = results.filter(payment_date__isnull=False)
-    
-    
+                
+    else:
+        #add190412
+        #支払済未選択の場合でも、支払日検索の場合は”未”の扱いとする
+        #(社長仕様)
+        if search_query_pay_month_from:
+            search_flag = True
+            if results is None:
+                results = Payment.objects.all().filter(payment_date__isnull=True).order_by('order')
+            else:
+                results = results.filter(payment_date__isnull=True)
+            
     if results is not None:
     #条件検索なら、並び順を設定
         if search_flag_pay_day == False:

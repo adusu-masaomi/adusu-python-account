@@ -11,8 +11,10 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 """
 
 import os
+#CentOsなら以下は不要
 from pymysql import install_as_MySQLdb
 install_as_MySQLdb()
+#
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -23,6 +25,11 @@ LOGIN_URL = '/account/login/'
 LOGIN_REDIRECT_URL = '/account/index/'
 AUTH_USER_MODEL = 'account.AuthUser'
 #
+
+#CentOS用
+#LOGIN_ERROR_URL = '/django/account/login'
+#LOGIN_URL = '/django/account/login/'
+#LOGIN_REDIRECT_URL = '/django/account/index/'
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/
@@ -94,8 +101,15 @@ EMPTY_MARK = '-'
 #支払方法のID
 ID_PAYMENT_METHOD_TRANSFER = 1    #振込
 ID_PAYMENT_METHOD_WITHDRAWAL = 2  #引落
+ID_PAYMENT_METHOD_CASH = 4  #現金
 #社員ID
 ID_STAFF_PRESIDENT = 1 #社長
+
+#銀行マスターのID(ADUSUの取扱銀行・資金繰りで使用)
+ID_BANK_HOKUETSU = 1
+ID_BANK_SANSHIN = 2
+#銀行支店
+ID_BANK_BRANCH_SANSHIN_MAIN = 19  #三信本店の支店ID
 
 TEMPLATES = [
     {
@@ -115,6 +129,9 @@ TEMPLATES = [
         },
     },
 ]
+
+#↑CentOsの場合は↓これも加えておく(STATIC_DIRが有効になる)
+#'django.template.context_processors.static', 
 
 WSGI_APPLICATION = 'adusu.wsgi.application'
 
@@ -141,6 +158,7 @@ def mysqldb_escape(value, conv_dict):
     encoder = encoders.get(vtype)
     return encoder(value)
 
+#CentOsの場合は以下は不要
 import pymysql
 setattr(pymysql, 'escape', mysqldb_escape)
 del pymysql
@@ -188,6 +206,10 @@ USE_TZ = True
 #SITE_ROOT = abspath(os.path.join(dirname(__file__),".."))
 
 STATIC_URL = '/static/'
+
+#CentOS用
+#STATIC_URL = '/django/static/'
+
 # 静的ファイルを共通で置く
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, "static"),

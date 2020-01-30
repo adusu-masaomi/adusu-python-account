@@ -138,7 +138,37 @@
     
   });
   
+  
   function predictAccountTitle(){
+  //(ajax)勘定科目を自動変換する(機械学習は使わない)
+    var content = document.getElementById("description_content").value;
+    var predict_index = 0;
+    
+    //ここは固定なので、いまいちいけてないが・・・
+    switch(content) {
+       case "ガソリン":
+       case "ガソリン代":
+          predict_index = 18;
+          break;
+       case "駐車場":
+       case "駐車場代":
+          predict_index = 7;
+          break;
+       case "入金":
+          predict_index = 20;
+          break;
+    }
+    
+    //debugger;
+    
+    if (predict_index > 0){
+      $("#account_title").val(predict_index).trigger('change');
+    }
+  }
+  
+  //del190809
+  //イマイチのため一旦保留
+  function predictAccountTitle_test(){
   //(ajax)機械学習で勘定科目を予測
     var content = document.getElementById("description_content").value;
     

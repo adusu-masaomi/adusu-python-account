@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% load bootstrap %}
+
+{% block title %}資金繰り表集計データの編集{% endblock title %}
+
+{% block content %}
+    <h3 class="page-header">資金繰り表集計データの編集</h3>
+    <!--本来なら新規と切り分けがあるが、新規はないものとする-->
+    <form action="{% url 'account:cash_flow_header_mod' cash_flow_header_id=cash_flow_header_id %}" method="post" class="form-horizontal" role="form">
+      {% csrf_token %}
+      {{ form|bootstrap_horizontal }}
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-10">
+          <button type="submit" class="btn btn-primary">登録</button>
+        </div>
+      </div>
+    </form>
+    <a href="{% url 'account:cash_flow_header_list' %}" class="btn btn-default">戻る</a>
+
+<script type="text/javascript" >
+  
+  //datepickerの設定
+  var dateFormatMonth = 'yy-mm';
+  var dateFormatNormal = 'yy-mm-dd';
+    
+  $(document).on('ready page:load', function(){
+    
+    //select2の設定
+    
+    //支払科目
+    $("#account_title").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+    //select2をenterキー押下した場合(リストが閉じられた時)のタブ移動。
+    $( "#account_title" ).on("select2:close", function (e) {
+      $('[tabindex=5]').focus(); 
+    });
+    //社員
+    $("#staff").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+    //select2をenterキー押下した場合(リストが閉じられた時)のタブ移動。
+    $( "#staff" ).on("select2:close", function (e) {
+      $('[tabindex=6]').focus(); 
+    });
+    
+    //注文コード
+    $("#purchase_order_code").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+    $( "#purchase_order_code" ).on("select2:close", function (e) {
+      $('[tabindex=7]').focus(); 
+    });
+    
+    //datepickerの設定
+    $.datepicker.setDefaults( $.datepicker.regional[ "ja" ] );
+    //
+    
+    //請求日のdatepicker
+    
+    //タブをここで設定
+    $("#settlement_date_picker").attr("tabindex", "0");
+    
+    $('#settlement_date_picker').datepicker({
+      dateFormat: dateFormatNormal,
+      //カレンダーを開いた時、入力値の状態にさせる処理
+      beforeShow: function (dateText, inst) { 
+          dateText = document.getElementById("settlement_date_picker").value;
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
+      },
+      //領収書日付へコピー
+      onSelect: function(dateText) {
+        var date2 = $('#settlement_date_picker').datepicker('getDate', '+1d'); 
+        $('#receipt_date').datepicker('setDate', date2);
+      },
+      
+      
+      // You can put more options here.
+      onClose: function(dateText, inst) { 
+        //次のコントロールへフォーカスを移す
+        //$('[tabindex=1]').focus();
+        var tabindex = parseInt($(this).attr('tabindex'));
+        $('[tabindex='+(tabindex+1)+']').focus();
+          
+      
+      }
+    });
+    
+    //enterキー押した場合
+    $('#settlement_date_picker').datepicker().keydown(function(event) {
+    if (event.which === $.ui.keyCode.ENTER) {
+        //event.preventDefault();
+        //次のコントロールへフォーカスを移す
+        //$('[tabindex=1]').focus(); 
+        var tabindex = parseInt($(this).attr('tabindex'));
+        $('[tabindex='+(tabindex+1)+']').focus();
+        
+    }
+    });
+    
+    //領収日のdatepicker
+    
+    //タブをここで設定
+    $("#receipt_date").attr("tabindex", "1");
+    
+    $('#receipt_date').datepicker({
+      dateFormat: dateFormatNormal,
+      //カレンダーを開いた時、入力値の状態にさせる処理
+      beforeShow: function (dateText, inst) { 
+        
+        dateText = document.getElementById("receipt_date").value;
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
+      },
+      // You can put more options here.
+      onClose: function(dateText, inst) { 
+        //次のコントロールへフォーカスを移す
+        //$('[tabindex=2]').focus(); 
+        var tabindex = parseInt($(this).attr('tabindex'));
+        $('[tabindex='+(tabindex+1)+']').focus();
+        
+      }
+    });
+    //enterキー押した場合
+    $('#receipt_date').datepicker().keydown(function(event) {
+    if (event.which === $.ui.keyCode.ENTER) {
+        event.preventDefault();
+        //次のコントロールへフォーカスを移す
+        //$('[tabindex=2]').focus(); 
+        var tabindex = parseInt($(this).attr('tabindex'));
+        $('[tabindex='+(tabindex+1)+']').focus();
+    }
+    });
+
+    
+    
+  });
+  
+  
+  function predictAccountTitle(){
+  //(ajax)勘定科目を自動変換する(機械学習は使わない)
+    var content = document.getElementById("description_content").value;
+    var predict_index = 0;
+    
+    //ここは固定なので、いまいちいけてないが・・・
+    switch(content) {
+       case "ガソリン":
+       case "ガソリン代":
+          predict_index = 18;
+          break;
+       case "駐車場":
+       case "駐車場代":
+          predict_index = 7;
+          break;
+       case "入金":
+          predict_index = 20;
+          break;
+    }
+    
+    //debugger;
+    
+    if (predict_index > 0){
+      $("#account_title").val(predict_index).trigger('change');
+    }
+  }
+  
+  //del190809
+  //イマイチのため一旦保留
+  function predictAccountTitle_test(){
+  //(ajax)機械学習で勘定科目を予測
+    var content = document.getElementById("description_content").value;
+    
+    
+    $.ajax({
+        url: "{% url 'account:predict_account_tile' %}", 
+        type: 'GET',
+        dataType: 'json',
+        data:{
+            'content': content,
+        },
+        success:function(data){
+            
+            predict_index = data.HTTPRESPONSE;
+            $("#account_title").val(predict_index).trigger('change');
+           
+        },
+    });
+  
+  }
+  
+  
+</script>
+
+{% endblock content %}
+
