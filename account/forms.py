@@ -195,7 +195,7 @@ class PaymentForm(forms.ModelForm):
         model = Payment
         fields = ('billing_year_month', 'partner', 'trade_division_id','account_title', 
            'payment_method_id', 'source_bank', 'source_bank_branch', 'billing_amount', 'rough_estimate', 'payment_amount', 'commission', 
-           'payment_due_date','payment_date','note')
+           'payment_due_date','payment_date','unpaid_amount','unpaid_date','note')
     
     def __init__(self, *args, **kwargs):
         super(PaymentForm, self).__init__(*args, **kwargs) # Call to ModelForm constructor
@@ -275,8 +275,19 @@ class PaymentForm(forms.ModelForm):
         self.fields['payment_date'].widget.attrs['style'] = 'width:120px; height:40px;'
         self.fields['payment_date'].widget.attrs['tabindex'] =  12
         
+        #add200507
+        #未払金額
+        self.fields['unpaid_amount'].widget.attrs['id'] = 'unpaid_amount'
+        #self.fields['unpayment_amount'].widget.attrs['onchange'] = "setAmount();"
+        self.fields['unpaid_amount'].widget.attrs['tabindex'] = 13
+        
+        #未払支払日(datepicker)
+        self.fields['unpaid_date'].widget = forms.DateInput(attrs={'class':'datepicker_3', 'id': 'unpaid_date_picker'})
+        self.fields['unpaid_date'].widget.attrs['style'] = 'width:120px; height:40px;'
+        self.fields['unpaid_date'].widget.attrs['tabindex'] =  14
+        
         #備考
-        self.fields['note'].widget.attrs['tabindex'] = 13
+        self.fields['note'].widget.attrs['tabindex'] = 15
         
         #upd180418 フォーム揃える
         self.helper = FormHelper()
@@ -298,6 +309,8 @@ class PaymentForm(forms.ModelForm):
                  Div('commission'),
                  Div('payment_due_date'),
                  Div('payment_date'),
+                 Div('unpaid_amount'),
+                 Div('unpaid_date'),
                  Div('note'),
                  ButtonHolder(
                    Submit('submit', '登録', css_class='button white')
@@ -311,7 +324,7 @@ class PaymentForm(forms.ModelForm):
         #Div('pay_month_flag_12',css_class='checkbox-inline'),
 
 class Payment_ReserveForm(forms.ModelForm):
-    """支払予定のフォーム"""
+    """支払予定(予約)のフォーム"""
     
     billing_year_month = forms.DateField(label='請求〆年月', input_formats=['%Y-%m'])
     

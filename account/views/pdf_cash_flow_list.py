@@ -55,10 +55,11 @@ def cash_flow_list_1(request):
     global SEP_Y; SEP_Y = 5 
     
     #縦線用定数
-    #global POS_LEFT_SIDE; POS_LEFT_SIDE = 16    #左端
     global POS_LEFT_SIDE; POS_LEFT_SIDE = 5    #左端
-    #global POS_RIGHT_SIDE; POS_RIGHT_SIDE = 200  #右端
-    global POS_RIGHT_SIDE; POS_RIGHT_SIDE = 296  #右端
+    #global POS_LEFT_SIDE; POS_LEFT_SIDE = 20    #左端
+    
+    #global POS_RIGHT_SIDE; POS_RIGHT_SIDE = 296  #右端
+    global POS_RIGHT_SIDE; POS_RIGHT_SIDE = 262  #右端
     
     global POS_DATE; POS_DATE = 19
     global POS_WEEK; POS_WEEK = 24
@@ -78,12 +79,18 @@ def cash_flow_list_1(request):
     global POS_PLAN_SANSHIN_H; POS_PLAN_SANSHIN_H = 177
     global POS_ACTUAL_SANSHIN_H; POS_ACTUAL_SANSHIN_H = 194
     
-    global POS_PLAN_CASH_P; POS_PLAN_CASH_P = 211
-    global POS_ACTUAL_CASH_P; POS_ACTUAL_CASH_P = 228
-    global POS_PLAN_CASH_C; POS_PLAN_CASH_C = 245
-    global POS_ACTUAL_CASH_C; POS_ACTUAL_CASH_C = 262
-    global POS_PLAN_TOTAL_L; POS_PLAN_TOTAL_L = 279
-    global POS_ACTUAL_TOTAL_L; POS_ACTUAL_TOTAL_L = 296
+    global POS_PLAN_CASH_C; POS_PLAN_CASH_C = 211
+    global POS_ACTUAL_CASH_C; POS_ACTUAL_CASH_C = 228
+    global POS_PLAN_TOTAL_L; POS_PLAN_TOTAL_L = 245
+    global POS_ACTUAL_TOTAL_L; POS_ACTUAL_TOTAL_L = 262
+    
+    
+    #global POS_PLAN_CASH_P; POS_PLAN_CASH_P = 211
+    #global POS_ACTUAL_CASH_P; POS_ACTUAL_CASH_P = 228
+    #global POS_PLAN_CASH_C; POS_PLAN_CASH_C = 245
+    #global POS_ACTUAL_CASH_C; POS_ACTUAL_CASH_C = 262
+    #global POS_PLAN_TOTAL_L; POS_PLAN_TOTAL_L = 279
+    #global POS_ACTUAL_TOTAL_L; POS_ACTUAL_TOTAL_L = 296
     
     global POS_ADJUST; POS_ADJUST = 0.5  #調整用
     
@@ -131,7 +138,8 @@ def cash_flow_list_1(request):
     search_query_pay_month_from = None
     search_query_pay_month_to = None
     
-    search_query_pay_month_from = cache.get('search_query_bp_month_from')
+    #search_query_pay_month_from = cache.get('search_query_bp_month_from')
+    search_query_pay_month_from = cache.get('search_query_cash_flow_date_from')
     
     #
     search_query_pay_month_only_from = ""
@@ -147,6 +155,9 @@ def cash_flow_list_1(request):
         end_month = int(search_query_pay_month_from[5:7])
             
         _, lastday = calendar.monthrange(end_year,end_month)
+    
+    
+    #import pdb; pdb.set_trace()
     
     
     #タイトル部出力
@@ -244,43 +255,6 @@ def cash_flow_list_1(request):
             
         p.setFillColorRGB(0,0,0)
         #p.setFont(font_name, 7)
-        
-        #小計・合計カウント用
-        #金額
-        #if payment.billing_amount is not None:
-        #    subtotal_amount += payment.billing_amount
-        #    total_amount += payment.billing_amount
-        #概算(未払のみカウント)
-        #if payment.payment_date is None:
-        #    if payment.rough_estimate is not None:
-        #        subtotal_rough_estimate += payment.rough_estimate
-        #        total_rough_estimate += payment.rough_estimate
-        #    else:
-        #        subtotal_rough_estimate += 0
-        #        total_rough_estimate += 0
-        #
-        #保存用
-        #payment_method_id_saved = payment.payment_method_id
-        #
-        
-        
-        #まず塗りつぶしの枠を入れる
-        #if payment.trade_division_id == 0:
-        #    p.setFillColorRGB(0.737254,0.784313,0.858823)   #水色
-        #elif payment.trade_division_id == 1:
-        #    p.setFillColorRGB(0.72549,0.84705,0.64705)   #抹茶色
-        #p.rect(POS_LEFT_SIDE*mm, (y-POS_AJDUST_HEIGHT)*mm, (POS_RIGHT_SIDE-POS_LEFT_SIDE)*mm, POS_DETAIL_HEIGHT*mm, fill=True) #枠
-        #p.setFillColorRGB(0,0,0)  #色を黒に戻す
-        #
-        
-        #複数月範囲の場合、または未払リストの場合は、見分けられるように月も出力
-        #if multi_month == True or search_query_paid:
-            #import pdb; pdb.set_trace()
-            
-            #if payment.billing_year_month is not None:
-            #    x = DETAIL_START_X
-            #    str_month = str(payment.billing_year_month.month) + "月"
-            #    p.drawString((x-9)*mm, y*mm, str_month)
         
         #x = DETAIL_START_X + 6
         x = DETAIL_START_X - 5
@@ -415,22 +389,19 @@ def cash_flow_list_1(request):
                     p.drawRightString(x*mm, y*mm, actual_sanshin_main)
             
             #現金社長(予定)
-            x = POS_PLAN_CASH_P - POS_ADJUST
-             
-            if cash_flow_header.expected_cash_president is not None:
-                if abs(cash_flow_header.expected_cash_president) > 0:
-                    expected_cash_president_total += cash_flow_header.expected_cash_president #縦計用
-                    expected_cash_president = "￥" + str("{0:,d}".format(cash_flow_header.expected_cash_president))  #桁区切り
-                    p.drawRightString(x*mm, y*mm, expected_cash_president)
-            
+            #x = POS_PLAN_CASH_P - POS_ADJUST
+            #if cash_flow_header.expected_cash_president is not None:
+            #    if abs(cash_flow_header.expected_cash_president) > 0:
+            #        expected_cash_president_total += cash_flow_header.expected_cash_president #縦計用
+            #        expected_cash_president = "￥" + str("{0:,d}".format(cash_flow_header.expected_cash_president))  #桁区切り
+            #        p.drawRightString(x*mm, y*mm, expected_cash_president)
             #現金社長(実際)
-            x = POS_ACTUAL_CASH_P - POS_ADJUST
-             
-            if cash_flow_header.actual_cash_president is not None:
-                if abs(cash_flow_header.actual_cash_president) > 0:
-                    actual_cash_president_total += cash_flow_header.actual_cash_president  #縦計用
-                    actual_cash_president = "￥" + str("{0:,d}".format(cash_flow_header.actual_cash_president))  #桁区切り
-                    p.drawRightString(x*mm, y*mm, actual_cash_president)
+            #x = POS_ACTUAL_CASH_P - POS_ADJUST
+            #if cash_flow_header.actual_cash_president is not None:
+            #    if abs(cash_flow_header.actual_cash_president) > 0:
+            #        actual_cash_president_total += cash_flow_header.actual_cash_president  #縦計用
+            #        actual_cash_president = "￥" + str("{0:,d}".format(cash_flow_header.actual_cash_president))  #桁区切り
+            #        p.drawRightString(x*mm, y*mm, actual_cash_president)
             
             #現金会社(予定)
             x = POS_PLAN_CASH_C - POS_ADJUST
@@ -536,8 +507,8 @@ def cash_flow_list_1(request):
         p.line(POS_PLAN_SANSHIN_H*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_PLAN_SANSHIN_H*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #支払予定日の右端
         p.line(POS_ACTUAL_SANSHIN_H*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_ACTUAL_SANSHIN_H*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #三信(本店)の右端
         
-        p.line(POS_PLAN_CASH_P*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_PLAN_CASH_P*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #三信(本店)の右端
-        p.line(POS_ACTUAL_CASH_P*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_ACTUAL_CASH_P*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #三信(本店)の右端
+        #p.line(POS_PLAN_CASH_P*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_PLAN_CASH_P*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #三信(本店)の右端
+        #p.line(POS_ACTUAL_CASH_P*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_ACTUAL_CASH_P*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #三信(本店)の右端
         p.line(POS_PLAN_CASH_C*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_PLAN_CASH_C*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #三信(本店)の右端
         p.line(POS_ACTUAL_CASH_C*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_ACTUAL_CASH_C*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #三信(本店)の右端
         p.line(POS_PLAN_TOTAL_L*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_PLAN_TOTAL_L*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #三信(本店)の右端
@@ -612,14 +583,14 @@ def cash_flow_list_1(request):
             p.drawRightString(x*mm, totalY*mm, tmp_str)
             
             #現金社長(予定)
-            x = POS_PLAN_CASH_P - POS_ADJUST
-            tmp_str = "￥" + str("{0:,d}".format(expected_cash_president_total))  #桁区切り
-            p.drawRightString(x*mm, totalY*mm, tmp_str)
+            #x = POS_PLAN_CASH_P - POS_ADJUST
+            #tmp_str = "￥" + str("{0:,d}".format(expected_cash_president_total))  #桁区切り
+            #p.drawRightString(x*mm, totalY*mm, tmp_str)
             
             #現金社長(実際)
-            x = POS_ACTUAL_CASH_P - POS_ADJUST
-            tmp_str = "￥" + str("{0:,d}".format(actual_cash_president_total))  #桁区切り
-            p.drawRightString(x*mm, totalY*mm, tmp_str)
+            #x = POS_ACTUAL_CASH_P - POS_ADJUST
+            #tmp_str = "￥" + str("{0:,d}".format(actual_cash_president_total))  #桁区切り
+            #p.drawRightString(x*mm, totalY*mm, tmp_str)
             
             #現金会社(予定)
             x = POS_PLAN_CASH_C - POS_ADJUST
@@ -671,8 +642,8 @@ def cash_flow_list_1(request):
             p.line(POS_PLAN_SANSHIN_H*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_PLAN_SANSHIN_H*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #支払予定日の右端
             p.line(POS_ACTUAL_SANSHIN_H*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_ACTUAL_SANSHIN_H*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #さんしん（本店）の右端
             
-            p.line(POS_PLAN_CASH_P*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_PLAN_CASH_P*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #さんしん（本店）の右端
-            p.line(POS_ACTUAL_CASH_P*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_ACTUAL_CASH_P*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #さんしん（本店）の右端
+            #p.line(POS_PLAN_CASH_P*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_PLAN_CASH_P*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #さんしん（本店）の右端
+            #p.line(POS_ACTUAL_CASH_P*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_ACTUAL_CASH_P*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #さんしん（本店）の右端
             p.line(POS_PLAN_CASH_C*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_PLAN_CASH_C*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #さんしん（本店）の右端
             p.line(POS_ACTUAL_CASH_C*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_ACTUAL_CASH_C*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #さんしん（本店）の右端
             p.line(POS_PLAN_TOTAL_L*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_PLAN_TOTAL_L*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #さんしん（本店）の右端
@@ -713,8 +684,8 @@ def cash_flow_list_1(request):
             p.line(POS_PLAN_SANSHIN_H*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_PLAN_SANSHIN_H*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #支払予定日の右端
             p.line(POS_ACTUAL_SANSHIN_H*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_ACTUAL_SANSHIN_H*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #さんしん(本店)の右端
             
-            p.line(POS_PLAN_CASH_P*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_PLAN_CASH_P*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #さんしん(本店)の右端
-            p.line(POS_ACTUAL_CASH_P*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_ACTUAL_CASH_P*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #さんしん(本店)の右端
+            #p.line(POS_PLAN_CASH_P*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_PLAN_CASH_P*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #さんしん(本店)の右端
+            #p.line(POS_ACTUAL_CASH_P*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_ACTUAL_CASH_P*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #さんしん(本店)の右端
             p.line(POS_PLAN_CASH_C*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_PLAN_CASH_C*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #さんしん(本店)の右端
             p.line(POS_ACTUAL_CASH_C*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_ACTUAL_CASH_C*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #さんしん(本店)の右端
             p.line(POS_PLAN_TOTAL_L*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_PLAN_TOTAL_L*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #さんしん(本店)の右端
@@ -863,12 +834,12 @@ def set_title_normal(p,x,y):
     tmpX += 17
     p.drawString(tmpX*mm, (y+7.5)*mm, '実際')
     
-    tmpX += 22
-    p.drawString(tmpX*mm, (y+3.5)*mm, '現金(社長)')
-    tmpX -= 5
-    p.drawString(tmpX*mm, (y+7.5)*mm, '予定')
-    tmpX += 17
-    p.drawString(tmpX*mm, (y+7.5)*mm, '実際')
+    #tmpX += 22
+    #p.drawString(tmpX*mm, (y+3.5)*mm, '現金(社長)')
+    #tmpX -= 5
+    #p.drawString(tmpX*mm, (y+7.5)*mm, '予定')
+    #tmpX += 17
+    #p.drawString(tmpX*mm, (y+7.5)*mm, '実際')
     
     tmpX += 22
     p.drawString(tmpX*mm, (y+3.5)*mm, '現金(会社)')
@@ -923,8 +894,8 @@ def set_title_normal(p,x,y):
     p.line(POS_ACTUAL_SANSHIN*mm, (START_Y+2.5)*mm, POS_ACTUAL_SANSHIN*mm, ((START_Y-1) + POS_HEADER_HEIGHT)*mm) #振込先の右端
     p.line(POS_PLAN_SANSHIN_H*mm, (START_Y+6.5)*mm, POS_PLAN_SANSHIN_H*mm, ((START_Y-1) + POS_HEADER_HEIGHT)*mm) #三信(本店)予定の右端
     p.line(POS_ACTUAL_SANSHIN_H*mm, (START_Y+2.5)*mm, POS_ACTUAL_SANSHIN_H*mm, ((START_Y-1) + POS_HEADER_HEIGHT)*mm) #三信(本店)実際の右端
-    p.line(POS_PLAN_CASH_P*mm, (START_Y+6.5)*mm, POS_PLAN_CASH_P*mm, ((START_Y-1) + POS_HEADER_HEIGHT)*mm) #現金(社長)予定の右端
-    p.line(POS_ACTUAL_CASH_P*mm, (START_Y+2.5)*mm, POS_ACTUAL_CASH_P*mm, ((START_Y-1) + POS_HEADER_HEIGHT)*mm) #さんしん(本店)の右端
+    #p.line(POS_PLAN_CASH_P*mm, (START_Y+6.5)*mm, POS_PLAN_CASH_P*mm, ((START_Y-1) + POS_HEADER_HEIGHT)*mm) #現金(社長)予定の右端
+    #p.line(POS_ACTUAL_CASH_P*mm, (START_Y+2.5)*mm, POS_ACTUAL_CASH_P*mm, ((START_Y-1) + POS_HEADER_HEIGHT)*mm) #さんしん(本店)の右端
     p.line(POS_PLAN_CASH_C*mm, (START_Y+6.5)*mm, POS_PLAN_CASH_C*mm, ((START_Y-1) + POS_HEADER_HEIGHT)*mm) #現金(会社)予定の右端
     p.line(POS_ACTUAL_CASH_C*mm, (START_Y+2.5)*mm, POS_ACTUAL_CASH_C*mm, ((START_Y-1) + POS_HEADER_HEIGHT)*mm) #さんしん(本店)の右端
     p.line(POS_PLAN_TOTAL_L*mm, (START_Y+6.5)*mm, POS_PLAN_TOTAL_L*mm, ((START_Y-1) + POS_HEADER_HEIGHT)*mm) #合計(予定)の右端

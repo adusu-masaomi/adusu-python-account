@@ -52,12 +52,17 @@ POS_X_SUBJECT = 86
 POS_X_DESCRIPTION = 116
 POS_X_DESCRIPTION_2 = 158
 POS_X_INCOMES = 200
-POS_X_EXPENCES = 230
-POS_X_EXPENCES_PRESIDENT = 260
+POS_X_EXPENCES = 225  #230
+POS_X_EXPENCES_STAFF = 250 #260
 
-#POS_RIGHT_SIDE_C = 290
-POS_RIGHT_SIDE_C = 283   #UPD190824
-POS_NOTE = 290  #備考(軽減税率などの場合)の場所
+POS_X_EXPENCES_PRESIDENT = 273 #260
+
+POS_X_BALANCE = 273 #
+
+#POS_RIGHT_SIDE_C = 295
+POS_RIGHT_SIDE_C = 294  #UPD220310
+#POS_RIGHT_SIDE_C = 283   #UPD190824
+POS_NOTE = 293  #備考(軽減税率などの場合)の場所
 #####
 
 #DETAIL_START_X = 20
@@ -143,6 +148,12 @@ def list_1(request):
         
         p.setFont(font_name, 9)  #元のサイズに戻す
         
+        #総残高(行毎用)
+        balance = 0
+        tmp_balance = cache.get('pre_balance')
+        if tmp_balance is not None:
+            balance = int(tmp_balance)
+        
         i = 0  #No用
         cnt = 0 
         
@@ -227,18 +238,22 @@ def list_1(request):
             #社長と社員で切り分ける
             expences_president = 0
             expences_staff = 0
+            
+            expences = cash_book.expences or 0
+            
             if cash_book.staff_id == settings.ID_STAFF_PRESIDENT:
                 expences_president = cash_book.expences or 0
             else:
                 expences_staff = cash_book.expences or 0
                     
             #社員分
-            x = POS_X_EXPENCES_PRESIDENT - POS_X_ADJUST_STR
+            x = POS_X_EXPENCES_STAFF - POS_X_ADJUST_STR
             if expences_staff > 0:
                 str_tmp = "￥" + str("{0:,d}".format(expences_staff))  #桁区切り
                 p.drawRightString(x*mm, y*mm, str_tmp)
             #社長分
-            x = POS_RIGHT_SIDE_C - POS_X_ADJUST_STR
+            #x = POS_RIGHT_SIDE_C - POS_X_ADJUST_STR
+            x = POS_X_EXPENCES_PRESIDENT - POS_X_ADJUST_STR
             if expences_president > 0:
                 str_tmp = "￥" + str("{0:,d}".format(expences_president))  #桁区切り
                 p.drawRightString(x*mm, y*mm, str_tmp)
@@ -249,13 +264,21 @@ def list_1(request):
                     x = POS_X_EXPENCES + POS_X_ADJUST_STR
                     str_tmp = "(社長分)"
                     p.drawString(x*mm, y*mm, str_tmp)
+            #行ごとの残高
+            balance += incomes - expences
+            
+            if balance > 0:
+                x = POS_NOTE   #これ以上右にすると欠ける
+                str_tmp = "￥" + str("{0:,d}".format(balance))  #桁区切り
+                p.drawRightString(x*mm, y*mm, str_tmp)
+            
             #test 
             #add190824
             #軽減税率or10月過ぎて8%なら(あくまでも入力値により判断)記号出す
-            if cash_book.reduced_tax_flag == 1:
-              x = POS_NOTE - 6  #これ以上右にすると欠ける
-              str_tmp = "※税８％"
-              p.drawString(x*mm, y*mm, str_tmp)
+            #if cash_book.reduced_tax_flag == 1:
+            #  x = POS_NOTE - 6  #これ以上右にすると欠ける
+            #  str_tmp = "※税８％"
+            #  p.drawString(x*mm, y*mm, str_tmp)
             #
             #罫線
             START_DETAIL_Y = y - 4.5
@@ -267,7 +290,8 @@ def list_1(request):
             p.line(POS_X_DESCRIPTION_2*mm, START_DETAIL_Y*mm, POS_X_DESCRIPTION_2*mm, (START_DETAIL_Y + SEP_Y)*mm) 
             p.line(POS_X_INCOMES*mm, START_DETAIL_Y*mm, POS_X_INCOMES*mm, (START_DETAIL_Y + SEP_Y)*mm) 
             p.line(POS_X_EXPENCES*mm, START_DETAIL_Y*mm, POS_X_EXPENCES*mm, (START_DETAIL_Y + SEP_Y)*mm) 
-            p.line(POS_X_EXPENCES_PRESIDENT*mm, START_DETAIL_Y*mm, POS_X_EXPENCES_PRESIDENT*mm, (START_DETAIL_Y + SEP_Y)*mm) 
+            p.line(POS_X_EXPENCES_STAFF*mm, START_DETAIL_Y*mm, POS_X_EXPENCES_STAFF*mm, (START_DETAIL_Y + SEP_Y)*mm) 
+            p.line(POS_X_BALANCE*mm, START_DETAIL_Y*mm, POS_X_BALANCE*mm, (START_DETAIL_Y + SEP_Y)*mm) 
             #
         
         ###フッター
@@ -776,9 +800,14 @@ def set_title_1(p,x,y):
     str_tmp = "支出"
     p.drawString(x*mm, y*mm, str_tmp)
     
-    x = POS_X_EXPENCES_PRESIDENT + POS_X_ADJUST_STR
+    x = POS_X_EXPENCES_STAFF + POS_X_ADJUST_STR
     str_tmp = "社長分"
     p.drawString(x*mm, y*mm, str_tmp)
+    
+    x = POS_X_BALANCE + POS_X_ADJUST_STR
+    str_tmp = "残高"
+    p.drawString(x*mm, y*mm, str_tmp)
+    
     
     #ヘッダ部罫線
     START_DETAIL_Y = y - 4.5
@@ -792,7 +821,8 @@ def set_title_1(p,x,y):
     
     p.line(POS_X_INCOMES*mm, START_DETAIL_Y*mm, POS_X_INCOMES*mm, (START_DETAIL_Y + SEP_Y)*mm) 
     p.line(POS_X_EXPENCES*mm, START_DETAIL_Y*mm, POS_X_EXPENCES*mm, (START_DETAIL_Y + SEP_Y)*mm) 
-    p.line(POS_X_EXPENCES_PRESIDENT*mm, START_DETAIL_Y*mm, POS_X_EXPENCES_PRESIDENT*mm, (START_DETAIL_Y + SEP_Y)*mm) 
+    p.line(POS_X_EXPENCES_STAFF*mm, START_DETAIL_Y*mm, POS_X_EXPENCES_STAFF*mm, (START_DETAIL_Y + SEP_Y)*mm) 
+    p.line(POS_X_BALANCE*mm, START_DETAIL_Y*mm, POS_X_BALANCE*mm, (START_DETAIL_Y + SEP_Y)*mm) 
     #
     
     ####

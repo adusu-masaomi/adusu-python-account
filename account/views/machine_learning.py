@@ -5,14 +5,14 @@ from account.models import Cash_Book
 from account.models import Account_Title
 from account.models import Staff
 
-from django.conf import settings
-from django.core.cache import cache
-from sklearn.feature_extraction.text import TfidfVectorizer
-import numpy as np
-from sklearn import cross_validation
-from sklearn.svm import LinearSVC
-from sklearn.externals import joblib
-#import pickle
+#centosに入らないため抹消 220218
+#from django.conf import settings
+#from django.core.cache import cache
+#from sklearn.feature_extraction.text import TfidfVectorizer
+#import numpy as np
+#from sklearn import cross_validation
+#from sklearn.svm import LinearSVC
+#from sklearn.externals import joblib
 
 #出納帳--勘定科目の教師データ作成
 def training_account_title(request):

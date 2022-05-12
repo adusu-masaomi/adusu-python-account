@@ -22,14 +22,23 @@ table {
         <option value=""></option>
         <option value="0">外注・工事仕入</option>
         <option value="1">経費</option>
+      </select>
+      
+        <label for="id_partner">支払先:</label>
+        <select  class="django-select2" id="id_partner" style="width:200px;"  name="q_partner" value="{{ search_query_partner }}" data-minimum-input-length="0">
+          <option value=""></option>
+          {% for partner in partners %}
+            <option value="{{partner.id}}" {% if search_query_partner == partner.id|stringformat:"s" %} selected {% endif %} >{{partner.name}}</option>
+          {% endfor %}
+        </select>
         
         <!--DBから持ってくる場合-->
         <!--{% for partner in partners %}-->
         <!--   <option>{{partner.name}}</option>-->
         <!--{% endfor %}-->
-      </select>
       
-      <button id="search_submit" type="submit" class="keep-disp" >検索</button>
+      
+      <button id="search_submit" type="submit" class="btn btn-grey300_rsd keep-disp" >検索</button>
      </form>
      
      <a href="{% url 'account:partner_add' %}" class="btn btn-primary keep-disp">新規作成</a>
@@ -116,7 +125,7 @@ table {
      $('form').keepPosition();
      
      $("#id_trade").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
-     //$('.id_categories').djangoSelect2({placeholder: 'Select an option'});
+     $("#id_partner").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
      
 	 //select2のタブインデックスはここで指定する
 	 //$(".searchableSelect2_1").select2({ theme: "bootstrap"}).on("load", function(e) { 

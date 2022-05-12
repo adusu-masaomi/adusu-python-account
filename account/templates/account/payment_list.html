@@ -54,6 +54,11 @@ table {
         
         <button type="button" class="btn btn-grey400_rsd btn-xs" onclick="clearDateTo()" >×</button>
         
+        <!-- test -->
+        <label for="searchbox">更新日:</label>
+        <input class="searchfield" id="search_upadte_date" name="q_update_date" type="text" value="{{search_query_update_date}}" placeholder="未選択..."/>
+        <!--test end-->
+        
         </br>
         
         <label for="id_paid">支払状況:</label>
@@ -97,7 +102,7 @@ table {
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     <!--<a href="{% url 'account:payment_list_2' %}" class="btn btn-lightblue200_ftg keep-disp" target="_blank" >支払集計(中越用)</a>-->
     
-    <a href="{% url 'account:payment_list_2' %}" class="btn btn-lightblue200_ftg keep-disp" target="_blank" onclick="return checkDate()">支払集計(中越用)</a>
+    <a href="{% url 'account:payment_list_2' %}" class="btn btn-lightblue200_ftg keep-disp" target="_blank" onclick="return checkDate()">支払集計(税理士用)</a>
     
     <!--<button onclick="call_counter('account:payment_list_2', 12345);">
             I update object 12345
@@ -137,6 +142,7 @@ table {
           <th>{% anchor payment_method_id "支払方法" %}</th>
           <th>{% anchor payment_due_date "支払予定日" %}</th>
           <th>{% anchor payment_date "支払日" %}</th>
+          <th>{% anchor unpaid_amount "未払金額" %}</th>
           <th>備考</th>
         </tr>
       </thead>
@@ -160,13 +166,22 @@ table {
           {% else %}
             <td align="right"><font color = "#C0C0C0">{{ payment.rough_estimate| default_if_none:EMPTY_MARK }}</font></td>
           {% endif %}
-	  {% if payment.payment_method_verbose != null %}	
+	      {% if payment.payment_method_verbose != null %}	
             <td>{{ payment.payment_method_verbose }}</td>
           {% else %}
             <td></td>
           {% endif %}
           <td align="right">{{ payment.payment_due_date|date:"m/d" }}</td>
           <td align="right">{{ payment.payment_date|date:"m/d" }}</td>
+          
+          
+          {% if payment.unpaid_amount != null %}
+            <td align="right"><font color = "#B45F04"><b>￥{{ payment.unpaid_amount| intcomma:False }}</b></font></td>
+          {% else %}
+            <td align="right">{{ payment.unpaid_amount| default_if_none:EMPTY_MARK }}</td>
+          {% endif %}
+          
+          
           <td style="width:100px;">{{ payment.note }}</td>
 		  <td>
             <a href="{% url 'account:payment_mod' payment_id=payment.id %}" class="btn btn-default btn-sm keep-disp">編集</a>
@@ -296,6 +311,10 @@ table {
       //  debugger;
       },
     });
+    
+    //更新日
+    $('#search_upadte_date').datepicker({
+          });
     
      //select2をenterキー押下した場合(リストが閉じられた時)のタブ移動。
 	 $( ".searchableConstructionCode" ).on("select2:close", function (e) {

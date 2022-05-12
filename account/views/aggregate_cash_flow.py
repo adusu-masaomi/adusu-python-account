@@ -33,6 +33,9 @@ from django.db.models import Count
 from django.contrib import messages
 
 import calendar    #月末日取得用
+from datetime import datetime, date, timedelta
+from django.db.models import Avg, Max, Min, Sum
+
 #for debug
 #import pdb; pdb.set_trace()
 
@@ -41,43 +44,92 @@ def set_cash_flow(request):
     
     #save_flag = cache.get('aggregate_save_flag')  #集計のみかデータ保存するかのフラグ
     
-    search_query_bp_month_from = None
-    search_query_bp_month_to = None
+    search_query_cash_flow_date_from = None
+    search_query_cash_flow_date_to = None
     
     #
     
     if request.method == 'GET': # If the form is submitted
-        search_query_bp_month_from = request.GET.get('q_bp_month_from', None)
-        if search_query_bp_month_from == None:
-            search_query_bp_month_from = cache.get('search_query_bp_month_from')
+        search_query_cash_flow_date_from = request.GET.get('q_cash_flow_date_from', None)
+        if search_query_cash_flow_date_from == None:
+            search_query_cash_flow_date_from = cache.get('search_query_cash_flow_date_from')
         
-        if search_query_bp_month_from != None:
-            if len(search_query_bp_month_from) == 10:
+        if search_query_cash_flow_date_from != None:
+            if len(search_query_cash_flow_date_from) == 10:
             #すでに１日が入っている場合、下部で処理するので削っておく
-                search_query_bp_month_from = search_query_bp_month_from[:-3]
-                
-        if search_query_bp_month_from != None:    
-            cache.set('search_query_bp_month_from', search_query_bp_month_from, 86400)
+                search_query_cash_flow_date_from = search_query_cash_flow_date_from[:-3]
+         
+        #キャッシュからは取らない
+        #if search_query_cash_flow_date_from != None:    
+        #    cache.set('search_query_cash_flow_date_from', search_query_cash_flow_date_from, 86400)
         
         
+    #今日の日付から、今年の1月1日を求める
+    first_date = date.today()
     
-    search_query_bp_month_only_from = ""
+    if search_query_cash_flow_date_from is None:
+        today = date.today()
+        tmp_first_date = date(today.year, 1, 1)
+        
+        tstr = tmp_first_date.strftime('%Y-%m-%d')
+        search_query_cash_flow_date_from = tstr[:-3]   #下の計算用に、１日は消しておく
+        
+        first_date = tmp_first_date  #add200205
+    #
     
-    if search_query_bp_month_from:
-        
-        search_query_bp_month_only_from = search_query_bp_month_from  #月までの文字でも保存しておく
-        
-        search_query_bp_month_from += "-01"
-        
-        #月末日で検索する
-        end_year = int(search_query_bp_month_from[0:4])
-        end_month = int(search_query_bp_month_from[5:7])
-            
-        _, lastday = calendar.monthrange(end_year,end_month)
+    date_count = 0
+    last_date = date.today()
+    search_query_cash_flow_date_only_from = ""
     
-    if search_query_bp_month_from is not None:
+    if search_query_cash_flow_date_from:
         
-        for i in range(lastday):
+        search_query_cash_flow_date_only_from = search_query_cash_flow_date_from  #月までの文字でも保存しておく
+        
+        search_query_cash_flow_date_from += "-01"
+        
+        ###
+        #支払予定のデータより、最終の集計日(指定の年間のみで)を求める
+        tmp_year = int(search_query_cash_flow_date_from[:-6])  #年だけ抜き取る
+        cash_flow_detail_expected_last = Cash_Flow_Detail_Expected.objects.filter(expected_date__year=tmp_year).\
+                                                              aggregate(Max('expected_date'))
+        
+        #cash_flow_detail_expected_last = Cash_Flow_Detail_Expected.objects.all().aggregate(Max('expected_date'))
+        
+        tmp_last_date = cash_flow_detail_expected_last["expected_date__max"]
+        
+        if tmp_last_date:   #add200212
+        
+            #import pdb; pdb.set_trace()
+        
+            #最終日は、最終の予定日のデータの入ってる月のものとする
+            end_year = tmp_last_date.year
+            end_month = tmp_last_date.month
+        
+            #月末日で検索する
+            #end_year = int(search_query_cash_flow_date_from[0:4])
+            #end_month = int(search_query_cash_flow_date_from[5:7])
+        
+            _, lastday = calendar.monthrange(end_year,end_month)
+       
+            #最終日付を求める
+            last_date = date(end_year, end_month, lastday)
+        
+            tmp_days = last_date-first_date
+        
+            #import pdb; pdb.set_trace()
+            date_count = (last_date-first_date).days
+        
+            #開始日を再セット
+            first_date = datetime.strptime(search_query_cash_flow_date_from, '%Y-%m-%d')
+
+        
+    #if search_query_cash_flow_date_from is not None:
+    if search_query_cash_flow_date_from is not None and date_count > 0:
+        
+        #import pdb; pdb.set_trace()
+        
+        #for i in range(lastday):
+        for i in range(date_count):
         #0~月末日-1日でループ
             
             #集計用変数をリセット
@@ -97,11 +149,17 @@ def set_cash_flow(request):
             actual_cash_company=0
             #
             
-            tmpDay = str(i+1).zfill(2)
+            #tmpDay = str(i+1).zfill(2)
+            
+            cash_flow_date = first_date + timedelta(days=i)
+            
+            #if cash_flow_date == datetime(2020, 3, 10, 0, 0):
+            #    import pdb; pdb.set_trace()
+            
             
             #文字→日付へ変換
-            string_date = search_query_bp_month_only_from + "-" + tmpDay
-            cash_flow_date = datetime.strptime(string_date, '%Y-%m-%d')
+            #string_date = search_query_cash_flow_date_only_from + "-" + tmpDay
+            #cash_flow_date = datetime.strptime(string_date, '%Y-%m-%d')
             
             #日付をセットし明細データを取得、ループ開始
             results = Cash_Flow_Detail_Expected.objects.all().filter(expected_date=cash_flow_date)
@@ -110,13 +168,15 @@ def set_cash_flow(request):
             results_actual = Cash_Flow_Detail_Actual.objects.all().filter(actual_date=cash_flow_date)
             
             #既存データがあれば一旦消去する(見出データ)
-            Cash_Flow_Header.objects.filter(cash_flow_date=cash_flow_date).delete()
+            #Cash_Flow_Header.objects.filter(cash_flow_date=cash_flow_date).delete()
+            cash_flow_header = Cash_Flow_Header.objects.filter(cash_flow_date=cash_flow_date).first()
             
             #if not results:  
             if not results and not results_actual:
-                #集計結果がなくても(予定・実際)空の日付データも作る
-                cash_flow_header = Cash_Flow_Header()
-                cash_flow_header.cash_flow_date = cash_flow_date
+                #集計結果がなくても(予定・実際)空の日付データも作る(データない場合)
+                if not cash_flow_header:
+                    cash_flow_header = Cash_Flow_Header()
+                    cash_flow_header.cash_flow_date = cash_flow_date
                 cash_flow_header.save()
                 
                 #messages.success(request, '週末データ作成が完了しました！')
@@ -202,8 +262,9 @@ def set_cash_flow(request):
                             actual_cash_company += tmp_actual_bp
                 
                 #ループ後にカラムへセット
-                cash_flow_header = Cash_Flow_Header()
-                cash_flow_header.cash_flow_date = cash_flow_date
+                if not cash_flow_header:
+                    cash_flow_header = Cash_Flow_Header()
+                    cash_flow_header.cash_flow_date = cash_flow_date
                 
                 #支出
                 cash_flow_header.expected_expense = expected_expense

@@ -236,6 +236,20 @@
     });
     
     
+    //未払支払日のdatepicker
+     $('#unpaid_date_picker').datepicker({
+      dateFormat: dateFormatNormal,
+      //カレンダーを開いた時、入力値の状態にさせる処理
+      beforeShow: function (dateText, inst) { 
+        dateText = document.getElementById("unpaid_date_picker").value;
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
+      },
+      // You can put more options here.
+    });
+    
     //ENTER→TABキーに変換する処理。
     //$('[tabindex]').keydown(function (e) {
     //  if (e.keyCode == 13 || e.keyCode == 9) {
@@ -397,8 +411,21 @@
     //振込の場合のみ
     if (document.getElementById("payment_method_id").value == 1){
       if ((payment_amount > 0 && billing_amount > payment_amount)){
-        document.getElementById("commission").value = document.getElementById("billing_amount").value - 
+        
+        var diff = document.getElementById("billing_amount").value - 
            document.getElementById("payment_amount").value;
+        
+        if (diff < 1000){
+        
+          document.getElementById("commission").value = document.getElementById("billing_amount").value - 
+             document.getElementById("payment_amount").value;
+        }else{
+        //add200507 手数料が千円以上なら、未払金ありのものとみなす
+          document.getElementById("commission").value = ""; //手数料はクリア
+          document.getElementById("unpaid_amount").value = document.getElementById("billing_amount").value - 
+             document.getElementById("payment_amount").value;
+        
+        }
       }
     }
   }

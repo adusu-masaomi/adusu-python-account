@@ -66,11 +66,17 @@ urlpatterns = [
     url(r'^payment_reserve/add/$', views.views.payment_reserve_edit, name='payment_reserve_add'),  # 登録
     url(r'^payment_reserve/mod/(?P<payment_reserve_id>\d+)/$', views.views.payment_reserve_edit, name='payment_reserve_mod'),  # 修正
     url(r'^payment_reserve/del/(?P<payment_reserve_id>\d+)/$', views.views.payment_reserve_del, name='payment_reserve_del'),   # 削除
-    #資金繰り表
+    #資金繰り表(集計)
     url(r'^cash_flow_header/$', views.views.cash_flow_header_list, name='cash_flow_header_list'),   # 一覧
     url(r'^cash_flow_header/mod/(?P<cash_flow_header_id>\d+)/$', views.views.cash_flow_header_edit, name='cash_flow_header_mod'),  # 修正
     url(r'^cash_flow_header/report_1/$', views.pdf_cash_flow_list.cash_flow_list_1, name='cash_flow_list_1'),    #資金繰り表1
     url(r'^cash_flow_header/set_cash_flow_1/$', views.aggregate_cash_flow.set_cash_flow, name='set_cash_flow'),  #資金繰り見出データ作成
+    #資金繰(予定)
+    url(r'^cash_flow_detail_expected/$', views.views.cash_flow_detail_expected_list, name='cash_flow_detail_expected_list'),   # 一覧
+    url(r'^cash_flow_detail_expected/del/(?P<cash_flow_detail_expected_id>\d+)/$', views.views.cash_flow_detail_expected_del, name='cash_flow_detail_expected_del'),   # 削除
+    #資金繰(実際)
+    url(r'^cash_flow_detail_actual/$', views.views.cash_flow_detail_actual_list, name='cash_flow_detail_actual_list'),   # 一覧
+    url(r'^cash_flow_detail_actual/del/(?P<cash_flow_detail_actual_id>\d+)/$', views.views.cash_flow_detail_actual_del, name='cash_flow_detail_actual_del'),   # 削除
     #貸借データ
     url(r'^balance_sheet/$', views.views.balance_sheet_list, name='balance_sheet_list'),   # 一覧
     url(r'^balance_sheet/add/$', views.views.balance_sheet_edit, name='balance_sheet_add'),  # 登録

@@ -29,6 +29,9 @@ def set_cash_flow_detail_from_cash_book(cash_book_id):
             cash_flow_detail_actual = Cash_Flow_Detail_Actual()
             cash_flow_detail_actual.cash_book_id = cash_book_id  #キー用
         
+        #科目
+        cash_flow_detail_actual.account_title_id = cash_book.account_title_id
+        
         #cash_flow_detail_actual.actual_date = cash_book.receipt_date
         cash_flow_detail_actual.actual_date = cash_book.settlement_date  #精算日とする
         cash_flow_detail_actual.cash_id = 1 
@@ -36,7 +39,9 @@ def set_cash_flow_detail_from_cash_book(cash_book_id):
         if cash_book.expences:
             cash_flow_detail_actual.actual_expense = cash_book.expences
         if cash_book.incomes:
-            cash_flow_detail_actual.actual_income = cash_book.incomes
+            #cash_flow_detail_actual.actual_income = cash_book.incomes
+            #upd200213
+            cash_flow_detail_actual.actual_income = -cash_book.incomes
         
         cash_flow_detail_actual.save()  #
     else:
@@ -63,8 +68,17 @@ def set_cash_flow_detail(payment_id):
     #import pdb; pdb.set_trace()
     
     
-    #支払予定日有、請求金額入力有、かつ支払日未入力の場合だけセット
-    if payment and payment.payment_due_date is not None and payment.billing_amount is not None and payment.payment_date is None:
+    #支払予定日有、請求金額入力有の場合にセット
+    
+    #☓☓☓支払予定日有、請求金額入力有、かつ支払日未入力の場合だけセット
+    #if payment and payment.payment_due_date is not None and payment.billing_amount is not None and payment.payment_date is None:
+    #支払日が入力された時点で削除するべきか否か？？
+    
+    set_flag = False
+    
+    if payment and payment.payment_due_date is not None and payment.billing_amount is not None:
+        
+        set_flag = True
         
         if not cash_flow_detail_expected:  #新規の場合
         #if cash_flow_detail_expected is None:  #新規の場合
@@ -106,10 +120,18 @@ def set_cash_flow_detail(payment_id):
             #    cash_flow_detail_expected.payment_bank_id = payment.source_bank_id
             #    #ここで支店も保管させる
         
+        #支払方法
+        cash_flow_detail_expected.payment_method_id = payment.payment_method_id
+        
         cash_flow_detail_expected.save()
     
-    elif payment and payment.billing_amount is not None and payment.payment_date is not None:
+    #if payment and payment.billing_amount is not None and payment.payment_date is not None:
+    if payment and payment.billing_amount is not None and payment.payment_date is not None \
+       and payment.payment_method_id != settings.ID_PAYMENT_METHOD_CASH:
     #実施のデータへ保存する処理
+       #現金は、出納帳から保存するのでここでは除外する
+        
+        set_flag = True
         
         #if cash_flow_detail_actual is None:  #新規の場合
         if not cash_flow_detail_actual:  #新規の場合
@@ -136,18 +158,25 @@ def set_cash_flow_detail(payment_id):
     
             cash_flow_detail_actual.payment_bank_id = payment.source_bank_id
             cash_flow_detail_actual.payment_bank_branch_id = payment.source_bank_branch_id
-        elif payment.payment_method_id == settings.ID_PAYMENT_METHOD_CASH:
-        #現金の場合
         
-            cash_flow_detail_actual.cash_id = 1   #ひとまず１をセット
+        #elif payment.payment_method_id == settings.ID_PAYMENT_METHOD_CASH:
+        #現金の場合
+        #    cash_flow_detail_actual.cash_id = 1   #ひとまず１をセット
+        
+        #支払方法
+        cash_flow_detail_actual.payment_method_id = payment.payment_method_id
         
         #import pdb; pdb.set_trace()
         
         cash_flow_detail_actual.save()
-    else:
+    #else:
+    
+    if not set_flag:
+        
         #どれも該当しない場合、登録済のデータなら削除する
         if cash_flow_detail_expected:
             cash_flow_detail_expected.delete()
+        
         if cash_flow_detail_actual:
             cash_flow_detail_actual.delete()
     #

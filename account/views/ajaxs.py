@@ -20,8 +20,9 @@ import json
 from django.http.response import JsonResponse
 from django.template import RequestContext
 
-from sklearn.externals import joblib
-import numpy as np
+#centos7でインストール不可のため、削除 220218
+#from sklearn.externals import joblib
+#import numpy as np
 
 # Ajax
 #銀行から支店を絞り込む
@@ -176,31 +177,21 @@ def ajax_cash_book_sort(request):
 
 def ajax_cash_book_predict_account_tile(req):
     if req.method == 'GET':
-        clf = joblib.load(settings.DIR_CLF_CASH_BOOK)
-        vect = joblib.load(settings.DIR_VECT_CASH_BOOK)
+        #del220218 centos7インストール不可の為抹消
+        #もったいないので、消さないこと
+        #clf = joblib.load(settings.DIR_CLF_CASH_BOOK)
+        #vect = joblib.load(settings.DIR_VECT_CASH_BOOK)
         
-        content = req.GET['content']  # GETデータを取得して
-        content = np.array([content])
-        content = content.reshape(1)
+        #content = req.GET['content']  # GETデータを取得して
+        #content = np.array([content])
+        #content = content.reshape(1)
         
+        #X = vect.transform(content)
         
-        X = vect.transform(content)
-        
-        result = clf.predict(X)
-        
-        #if  result is not None:
+        #result = clf.predict(X)
             
-        response = result[0].tolist()
+        #response = result[0].tolist()
         
-        #response = JsonResponse([response], safe=False)
-        
-        #import pdb; pdb.set_trace()
-        
-        #これでもひとまずOK
-        #return JsonResponse([response], safe=False)
-        
-        #import pdb; pdb.set_trace()
-                
-        json_data = json.dumps({"HTTPRESPONSE":response})   # JSON形式に直す
-        return HttpResponse(json_data, content_type="application/json")
-
+        #json_data = json.dumps({"HTTPRESPONSE":response})   # JSON形式に直す
+        #return HttpResponse(json_data, content_type="application/json")
+        return 0

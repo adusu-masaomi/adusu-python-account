@@ -13,6 +13,7 @@
 table {
   margin-top: 8px;
 }
+.GridView1 {overflow-y: auto;}
 </style>
 {% endblock %}
 
@@ -24,13 +25,13 @@ table {
         
         <!-- -->
         <label for="searchbox">収支年月:</label>
-        <input class="searchfield" id="search_pay_month_from" name="q_bp_month_from" type="text" value="{{search_query_bp_month_from}}" placeholder="未選択..."/>
+        <input class="searchfield" id="search_cash_flow_date_from" name="q_cash_flow_date_from" type="text" value="{{search_query_cash_flow_date_from}}" placeholder="未選択..."/>
         
         <button type="button" class="btn btn-grey400_rsd btn-xs" onclick="clearPayDateFrom()" >×</button>
         
         <!--
         <label for="searchbox">収支年月(終了):</label>
-        <input class="searchfield" id="search_pay_month_to" name="q_pay_month_to" type="text" value="{{search_query_pay_month_to}}" placeholder="未選択..."/>
+        <input class="searchfield" id="search_cash_flow_date_to" name="q_cash_flow_date_to" type="text" value="{{search_query_cash_flow_date_to}}" placeholder="未選択..."/>
         <button type="button" class="btn btn-grey400_rsd btn-xs" onclick="clearPayDateTo()" >×</button>
         -->
       
@@ -56,13 +57,12 @@ table {
        
    
 <!--見出し固定用設定-->
-<div style="margin-top : -0px;", class="span11 table-scrollable" >
+<div id ="GridView1", style="margin-top : -0px;", class="span11 table-scrollable" >
  
   <style>
-   table { }
-   table th, table td { white-space:nowrap; overflow:hidden; }
+   table {}
+   table th, table td { white-space:nowrap; overflow:hidden;}
   </style>
-  
     {% autosort cash_flow_headers %}
     <table id="tablefix", class="table table-striped table-bordered">
       <thead>
@@ -71,7 +71,7 @@ table {
           <th style="text-align:center;vertical-align:middle;" rowspan="3">{% anchor order "日付" %}</th>
           <th style="text-align:center" colspan="2">支出</th>
           <th style="text-align:center" colspan="2">収入</th>
-          <th style="text-align:center;vertical-align:middle;" colspan="12">残高</th>
+          <th style="text-align:center;vertical-align:middle;" colspan="10">残高</th>
         </tr>
         <tr>
           <th style="text-align:center;vertical-align:middle;" rowspan="2">予定</th>
@@ -81,7 +81,6 @@ table {
           <th style="text-align:center;" colspan="2">北越銀行</th>
           <th style="text-align:center;" colspan="2">三信(塚野目)</th>
           <th style="text-align:center;" colspan="2">三信(本店)</th>
-          <th style="text-align:center;" colspan="2">現金(社長)</th>
           <th style="text-align:center;" colspan="2">現金(会社)</th>
           <th style="text-align:center;" colspan="2">合計</th>
         </tr>
@@ -96,19 +95,24 @@ table {
           <th style="text-align:center;">実際</th>
           <th style="text-align:center;">予定</th>
           <th style="text-align:center;">実際</th>
-          <th style="text-align:center;">予定</th>
-          <th style="text-align:center;">実際</th>
         </tr>
       </thead>
-      <tbody id="sortable" class="connectedSortable style="font-size : 12px;">
+      <tbody id="sortable" class="connectedSortable style="font-size : 12px;" >
         {% for cash_flow_header in cash_flow_headers %}
-        <tr id="cash_flow_header_{{ cash_flow_header.id }}">
+        <!--<tr id="cash_flow_header_{{ cash_flow_header.id }}">-->
+        
+        <tr id="cash_flow_header_{{ orloop.counter }}">
           <td>{{ cash_flow_header.id }}</td>
           <td>{{ cash_flow_header.cash_flow_date|date:"Y/m/d(D)" }}</td>
           
           <!--支出(予定)-->
           {% if cash_flow_header.expected_expense != 0 %}
+            <!--
             <td align="right">￥{{ cash_flow_header.expected_expense| intcomma:False }}</td>
+            -->
+            
+            <td align="right"><a class="btn-link keep-disp" href="{% url 'account:cash_flow_detail_expected_list'%}?q_expected_date_from={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_expected_date_to={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_bp_id=0">￥{{cash_flow_header.expected_expense| intcomma:False}}</a></td>
+            
           {% else %}
             <!--０なら非表示-->
             <td align="right"></td>
@@ -116,7 +120,10 @@ table {
           
           <!--支出(実際)-->
           {% if cash_flow_header.actual_expense != 0 %}
-            <td align="right">￥{{ cash_flow_header.actual_expense| intcomma:False }}</td>
+            <!--<td align="right">￥{{ cash_flow_header.actual_expense| intcomma:False }}</td>-->
+                        
+            <td align="right"><a class="text-danger keep-disp" href="{% url 'account:cash_flow_detail_actual_list'%}?q_actual_date_from={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_actual_date_to={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_bp_id=0">￥{{cash_flow_header.actual_expense| intcomma:False}}</a></td>
+            
           {% else %}
             <!--０なら非表示-->
             <td align="right"></td>
@@ -124,7 +131,10 @@ table {
           
           <!--収入(予定)-->
           {% if cash_flow_header.expected_income != 0 %}
-            <td align="right">￥{{ cash_flow_header.expected_income| intcomma:False }}</td>
+            <!--<td align="right">￥{{ cash_flow_header.expected_income| intcomma:False }}</td>-->
+            
+            <td align="right"><a class="btn-link keep-disp" href="{% url 'account:cash_flow_detail_expected_list'%}?q_expected_date_from={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_expected_date_to={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_bp_id=1">￥{{cash_flow_header.expected_income| intcomma:False}}</a></td>
+            
           {% else %}
             <!--０なら非表示-->
             <td align="right"></td>
@@ -132,7 +142,10 @@ table {
           
           <!--収入(実際)-->
           {% if cash_flow_header.actual_income != 0 %}
-            <td align="right">￥{{ cash_flow_header.actual_income| intcomma:False }}</td>
+            <!--<td align="right">￥{{ cash_flow_header.actual_income| intcomma:False }}</td>-->
+            
+            <td align="right"><a class="text-danger keep-disp" href="{% url 'account:cash_flow_detail_actual_list'%}?q_actual_date_from={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_actual_date_to={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_bp_id=1">￥{{cash_flow_header.actual_income| intcomma:False}}</a></td>
+            
           {% else %}
             <!--０なら非表示-->
             <td align="right"></td>
@@ -140,7 +153,10 @@ table {
           
           <!--北越(予)-->
           {% if cash_flow_header.expected_hokuetsu != 0 %}
+            <!--
             <td align="right">￥{{ cash_flow_header.expected_hokuetsu| intcomma:False }}</td>
+            -->
+            <td align="right"><a class="btn-link keep-disp" href="{% url 'account:cash_flow_detail_expected_list'%}?q_expected_date_from={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_expected_date_to={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_bank_id=1">￥{{cash_flow_header.expected_hokuetsu| intcomma:False}}</a></td>
           {% else %}
             <!--０なら非表示-->
             <td align="right"></td>
@@ -148,7 +164,10 @@ table {
           
           <!--北越(実)-->
           {% if cash_flow_header.actual_hokuetsu != 0 %}
-            <td align="right">￥{{ cash_flow_header.actual_hokuetsu| intcomma:False }}</td>
+            <!--<td align="right">￥{{ cash_flow_header.actual_hokuetsu| intcomma:False }}</td>-->
+          
+            <td align="right"><a class="text-danger keep-disp" href="{% url 'account:cash_flow_detail_actual_list'%}?q_actual_date_from={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_actual_date_to={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_bank_id=1">￥{{cash_flow_header.actual_hokuetsu| intcomma:False}}</a></td>
+            
           {% else %}
             <!--０なら非表示-->
             <td align="right"></td>
@@ -156,7 +175,10 @@ table {
           
           <!--三信(塚野目)(予定)-->
           {% if cash_flow_header.expected_sanshin_tsukanome != 0 %}
-            <td align="right">￥{{ cash_flow_header.expected_sanshin_tsukanome| intcomma:False }}</td>
+            <!--<td align="right">￥{{ cash_flow_header.expected_sanshin_tsukanome| intcomma:False }}</td>-->
+            
+            <td align="right"><a class="btn-link keep-disp" href="{% url 'account:cash_flow_detail_expected_list'%}?q_expected_date_from={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_expected_date_to={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_bank_id={{ID_BANK_SANSHIN}}&q_bank_branch_id={{ID_BANK_BRANCH_SANSHIN_TSUKANOME}}">￥{{cash_flow_header.expected_sanshin_tsukanome| intcomma:False}}</a></td>
+            
           {% else %}
             <!--０なら非表示-->
             <td align="right"></td>
@@ -164,7 +186,9 @@ table {
           
           <!--三信(塚野目)(実)-->
           {% if cash_flow_header.actual_sanshin_tsukanome != 0 %}
-            <td align="right">￥{{ cash_flow_header.actual_sanshin_tsukanome| intcomma:False }}</td>
+            <!--<td align="right">￥{{ cash_flow_header.actual_sanshin_tsukanome| intcomma:False }}</td>-->
+          
+            <td align="right"><a class="text-danger keep-disp" href="{% url 'account:cash_flow_detail_actual_list'%}?q_actual_date_from={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_actual_date_to={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_bank_id={{ID_BANK_SANSHIN}}&q_bank_branch_id={{ID_BANK_BRANCH_SANSHIN_TSUKANOME}}">￥{{cash_flow_header.actual_sanshin_tsukanome| intcomma:False}}</a></td>
           {% else %}
             <!--０なら非表示-->
             <td align="right"></td>
@@ -172,7 +196,10 @@ table {
           
           <!--三信(本店)(予定)-->
           {% if cash_flow_header.expected_sanshin_main != 0 %}
-            <td align="right">￥{{ cash_flow_header.expected_sanshin_main| intcomma:False }}</td>
+            <!--<td align="right">￥{{ cash_flow_header.expected_sanshin_main| intcomma:False }}</td>-->
+            
+            <td align="right"><a class="btn-link keep-disp" href="{% url 'account:cash_flow_detail_expected_list'%}?q_expected_date_from={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_expected_date_to={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_bank_id={{ID_BANK_SANSHIN}}&q_bank_branch_id={{ID_BANK_BRANCH_SANSHIN_MAIN}}">￥{{cash_flow_header.expected_sanshin_main| intcomma:False}}</a></td>
+            
           {% else %}
             <!--０なら非表示-->
             <td align="right"></td>
@@ -180,31 +207,19 @@ table {
           
           <!--三信(本店)(実際)-->
           {% if cash_flow_header.actual_sanshin_main != 0 %}
-            <td align="right">￥{{ cash_flow_header.actual_sanshin_main| intcomma:False }}</td>
+            <!--<td align="right">￥{{ cash_flow_header.actual_sanshin_main| intcomma:False }}</td>-->
+            <td align="right"><a class="text-danger keep-disp" href="{% url 'account:cash_flow_detail_actual_list'%}?q_actual_date_from={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_actual_date_to={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_bank_id={{ID_BANK_SANSHIN}}&q_bank_branch_id={{ID_BANK_BRANCH_SANSHIN_MAIN}}">￥{{cash_flow_header.actual_sanshin_main| intcomma:False}}</a></td>
+            
           {% else %}
             <!--０なら非表示-->
             <td align="right"></td>
           {% endif %}
-          
-          <!--現金(社長)(予定)-->
-          {% if cash_flow_header.expected_cash_president != 0 %}
-            <td align="right">￥{{ cash_flow_header.expected_cash_president| intcomma:False }}</td>
-          {% else %}
-            <!--０なら非表示-->
-            <td align="right"></td>
-          {% endif %}
-          
-          <!--現金(社長)(実際)-->
-          {% if cash_flow_header.actual_cash_president != 0 %}
-            <td align="right">￥{{ cash_flow_header.actual_cash_president| intcomma:False }}</td>
-          {% else %}
-            <!--０なら非表示-->
-            <td align="right"></td>
-          {% endif %}
+                 
           
           <!--現金(会社)(予定)-->
           {% if cash_flow_header.expected_cash_company != 0 %}
-            <td align="right">￥{{ cash_flow_header.expected_cash_company| intcomma:False }}</td>
+            <!--<td align="right">￥{{ cash_flow_header.expected_cash_company| intcomma:False }}</td>-->
+            <td align="right"><a class="btn-link keep-disp" href="{% url 'account:cash_flow_detail_expected_list'%}?q_expected_date_from={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_expected_date_to={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_bank_id=99">￥{{cash_flow_header.expected_cash_company| intcomma:False}}</a></td>
           {% else %}
             <!--０なら非表示-->
             <td align="right"></td>
@@ -212,7 +227,8 @@ table {
           
           <!--現金(会社)(実際)-->
           {% if cash_flow_header.actual_cash_company != 0 %}
-            <td align="right">￥{{ cash_flow_header.actual_cash_company| intcomma:False }}</td>
+            <!--<td align="right">￥{{ cash_flow_header.actual_cash_company| intcomma:False }}</td>-->
+            <td align="right"><a class="text-danger keep-disp" href="{% url 'account:cash_flow_detail_actual_list'%}?q_actual_date_from={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_actual_date_to={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_bank_id=99">￥{{cash_flow_header.actual_cash_company| intcomma:False}}</a></td>
           {% else %}
             <!--０なら非表示-->
             <td align="right"></td>
@@ -220,7 +236,8 @@ table {
           
           <!--合計(予定)-->
           {% if cash_flow_header.expected_income != 0 or cash_flow_header.expected_expense != 0 %}
-                <td align="right">￥{{ cash_flow_header.expected_income|subtract:cash_flow_header.expected_expense| intcomma:False }}</td>
+                <!--<td align="right">￥{{ cash_flow_header.expected_income|subtract:cash_flow_header.expected_expense| intcomma:False }}</td>-->
+                <td align="right"><a class="btn-link keep-disp" href="{% url 'account:cash_flow_detail_expected_list'%}?q_expected_date_from={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_expected_date_to={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}">￥{{cash_flow_header.expected_income|subtract:cash_flow_header.expected_expense| intcomma:False}}</a></td>
           {% else %}
             <!--０なら非表示-->
             <td align="right"></td>
@@ -228,7 +245,8 @@ table {
           
            <!--合計(実際)-->
           {% if cash_flow_header.actual_income != 0 or cash_flow_header.actual_expense != 0 %}
-                <td align="right">￥{{ cash_flow_header.actual_income|subtract:cash_flow_header.actual_expense| intcomma:False }}</td>
+                <!--<td align="right">￥{{ cash_flow_header.actual_income|subtract:cash_flow_header.actual_expense| intcomma:False }}</td>-->
+                <td align="right"><a class="text-danger keep-disp" href="{% url 'account:cash_flow_detail_actual_list'%}?q_actual_date_from={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}&q_actual_date_to={{cash_flow_header.cash_flow_date|date:"Y-m-d"}}">￥{{cash_flow_header.actual_income|subtract:cash_flow_header.actual_expense| intcomma:False}}</a></td>
           {% else %}
             <!--０なら非表示-->
             <td align="right"></td>
@@ -326,22 +344,7 @@ table {
           <!--０なら非表示-->
           <td align="right"></td>
         {% endif %}
-        
-        <!--合計-現金(社長)(予定)-->
-        {% if sum_expected_cash_president != null %}
-          <td align="right">￥{{ sum_expected_cash_president| intcomma:False }}</td>
-        {% else %}
-          <!--０なら非表示-->
-          <td align="right"></td>
-        {% endif %}
-        
-        <!--合計-現金(社長)(実際)-->
-        {% if sum_actual_cash_president != null %}
-          <td align="right">￥{{ sum_actual_cash_president| intcomma:False }}</td>
-        {% else %}
-          <!--０なら非表示-->
-          <td align="right"></td>
-        {% endif %}
+               
         
         <!--合計-現金(会社)(予定)-->
         {% if sum_expected_cash_company != null %}
@@ -417,28 +420,33 @@ table {
     //画面位置保持用
     $('form').keepPosition();
     
-    
     //dateFormat: "yy-mm-dd"
   
     $.datepicker.setDefaults( $.datepicker.regional[ "ja" ] );
     
     //開始月(支払)
-    $('#search_pay_month_from').datepicker({
+    $('#search_cash_flow_date_from').datepicker({
       dateFormat: "yy-mm",
       //カレンダーを開いた時、入力値の状態にさせる処理
       beforeShow: function (dateText, inst) { 
-        dateText = document.getElementById("search_pay_month_from").value;
+        dateText = document.getElementById("search_cash_flow_date_from").value;
         date = new Date(dateText);
         if (dateText != ""){
           $.datepicker.setDefaults({"defaultDate":date});
         }
       },
       onSelect: function(dateText) {
+        
+         /////////
+         //テスト中・・うまくいかない
+         //testScroll();
+         /////////
+        
         //終了月へ開始月をコピー(未入力の場合または開始月が終了月より大きい場合)
-        //if (document.getElementById("search_pay_month_to").value == "" || 
-        //    document.getElementById("search_pay_month_from").value > document.getElementById("search_pay_month_to").value){
-        //   document.getElementById("search_pay_month_to").value = 
-        //    document.getElementById("search_pay_month_from").value;
+        //if (document.getElementById("search_cash_flow_date_to").value == "" || 
+        //    document.getElementById("search_cash_flow_date_from").value > document.getElementById("search_cash_flow_date_to").value){
+        //   document.getElementById("search_cash_flow_date_to").value = 
+        //    document.getElementById("search_cash_flow_date_from").value;
         //}
         
         //請求開始終了日をクリア
@@ -487,11 +495,11 @@ table {
     });
     
     //終了月(支払)
-    $('#search_pay_month_to').datepicker({
+    $('#search_cash_flow_date_to').datepicker({
       dateFormat: "yy-mm",
       //カレンダーを開いた時、入力値の状態にさせる処理
       beforeShow: function (dateText, inst) { 
-        dateText = document.getElementById("search_pay_month_to").value;
+        dateText = document.getElementById("search_cash_flow_date_to").value;
         date = new Date(dateText);
         if (dateText != ""){
           $.datepicker.setDefaults({"defaultDate":date});
@@ -552,7 +560,10 @@ table {
     });
    
     
+    
   });
+
+      
 
   //画面位置保持用
   $.fn.keepPosition = function(){
@@ -576,6 +587,7 @@ table {
             bodyDiv.scrollTop($.cookie(key));
         }
     },0);
+    
   }
   
     
@@ -586,8 +598,8 @@ table {
   }
   //支払開始・終了日をクリア
   function clearPaymentDateFromTo(){
-    document.getElementById("search_pay_month_from").value = "";
-    document.getElementById("search_pay_month_to").value = "";
+    document.getElementById("search_cash_flow_date_from").value = "";
+    document.getElementById("search_cash_flow_date_to").value = "";
   }
   
   ////
@@ -601,11 +613,11 @@ table {
   }
   //支払開始日をクリアする
   function clearPayDateFrom(){
-   document.getElementById("search_pay_month_from").value = "";
+   document.getElementById("search_cash_flow_date_from").value = "";
   }
   //支払終了日をクリアする
   function clearPayDateTo(){
-   document.getElementById("search_pay_month_to").value = "";
+   document.getElementById("search_cash_flow_date_to").value = "";
   }
   
   //取引区分をクリアする
@@ -642,6 +654,119 @@ table {
     
   //});
   
+   //スクロールさせる処理 test中 難航・・
+   function testScroll(){
+     
+     var i = 10;
+     
+     //$('#cash_flow_header_'+i).focus();
+     
+     //$('#GridView1').animate({
+     //$('tbody').animate({
+     //$('tablefix').animate({
+     //$('html, body').animate({
+     //   scrollTop: $("tbody")[0].offsetTop
+     //}, 500);
+     
+     //i = 10
+     
+     //NG
+     //$('html, body').animate({
+     //    scrollTop: $('#cash_flow_header_'+i).offset().top -100
+     //}, 2000);
+      
+     
+      //$('#tablefix').animate({
+      //      scrollTop: 1000});
+      
+     
+     //$('#tablefix').scrollTo(400); 
+     //$('#GridView1').scrollTo(400); 
+     //$("#GridView1").get(0).scrollIntoView();
+   
+     //$('#GridView1').scrollView();
+     //$('#tablefix').scrollView();
+   
+     //scrollToRow($("#table"), $("#tableOuter"), 10);
+     
+     //debugger;
+     //
+     //var i = 5;
+     //var table = document.getElementById('GridView1');
+     //var tableFix = document.getElementById('tablefix');
+     //var tbody = table.getElementsByTagName('tbody');
+     //var tr = tbody[0].getElementsByTagName('tr')[10]
+     //var scrollTo = tr.offsetTop;
+     //
+     
+     //$('tbody').get(0)は取れているが..
+     
+     //$('tbody').animate({
+     //scrollTop: $('tbody').get(0).scrollHeight}, 2000);
+     
+     //$('tbody').get(0).scrollTop = scrollTo;
+     $('table').get(0).scrollTop = scrollTo;
+     //$('div').get(0).scrollTop = scrollTo;
+     
+     //まあまあ
+     //$('html, body').animate({
+     //   scrollTop: scrollTo
+     //}, 2000);
+     
+     //$('html, body').animate({
+     //   scrollTop: $('tr[data-id="cash_flow_header_15"]').offset().top
+     //},'slow');
+     
+     //debugger;
+     //$('tbody')[0].scrollTop = scrollTo;
+     //$('#sortable')[0].scrollTop = scrollTo;
+     
+     //$("#tablefix tbody")[0].offsetTop = scrollTo;
+     //$("#tablefix tbody")[0].scrollTop = scrollTo;
+     
+     //tableFix.scrollTop = scrollTo;
+     //$('tbody').scrollTop() = scrollTo;
+     //$("tbody")[0].offsetTop = scrollTo;
+     
+     //tbody[0].scrollTop = scrollTo;
+     
+     //table.scrollTop = scrollTo;
+     
+     //tr[0].scrollTop = scrollTo;
+     
+     //table.offsetTop = scrollTo;
+   }
+   
+   $.fn.scrollView = function () {
+    return this.each(function () {
+        $('html, body').animate({
+        //$([document.documentElement, document.body]).animate({
+        //$([document.documentElement, document.tbody]).animate({
+        //$('#GridView1').animate({
+        //$("#tablefix tbody").animate({
+            scrollTop: $(this).offset().top
+        }, 1000);
+    });
+   }
+   
+   function scrollToRow(table, tableOuter, rowNumber) {
+
+     // 目印を削除する
+     table.find("tr").css("background-color", "white");
+    
+     var baseRow           = table.find("tr:eq(" + 0         + ")");
+     var baseRowPosition   = baseRow.position();
+     var targetRow         = table.find("tr:eq(" + rowNumber + ")");
+     var targetRowPosition = targetRow.position();
+
+     // スクロールした位置が分かるように、目印を追加する
+     targetRow.css("background-color", "gray");
+
+     // 対象の行にスクロールする
+     tableOuter.animate(
+        {scrollTop : targetRowPosition.top - baseRowPosition.top}
+     );
+   }
   
 </script>
 

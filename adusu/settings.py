@@ -105,11 +105,17 @@ ID_PAYMENT_METHOD_CASH = 4  #現金
 #社員ID
 ID_STAFF_PRESIDENT = 1 #社長
 
+#取引先ID
+#ID_MURAYAMA_DENKI = 73
+#ID_SUDO_DENKI = 50
+
 #銀行マスターのID(ADUSUの取扱銀行・資金繰りで使用)
 ID_BANK_HOKUETSU = 1
-ID_BANK_SANSHIN = 2
+#ID_BANK_SANSHIN = 2
+ID_BANK_SANSHIN = 3
 #銀行支店
 ID_BANK_BRANCH_SANSHIN_MAIN = 19  #三信本店の支店ID
+ID_BANK_BRANCH_SANSHIN_TSUKANOME = 21  #三信塚野目の支店ID
 
 TEMPLATES = [
     {
@@ -125,6 +131,9 @@ TEMPLATES = [
                 'account.context_processors.empty_mark_info',
                 'account.context_processors.payment_method_transfer_info',
                 'account.context_processors.payment_method_withdrawal_info',
+                'account.context_processors.bank_sanshin_info',
+                'account.context_processors.bank_branch_sanshin_main_info',
+                'account.context_processors.bank_branch_sanshin_tsukanome_info',
             ],
         },
     },

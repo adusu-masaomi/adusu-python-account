@@ -24,9 +24,14 @@ from reportlab.pdfbase.pdfmetrics import registerFont
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.units import mm
 from django.conf import settings
-from datetime import datetime
+#from datetime import datetime
+from datetime import datetime, date, timedelta
+from dateutil.relativedelta import relativedelta
 
 import calendar    #月末日取得用  add180911
+
+from django.db.models import Q  #add200507
+
 #fontname = "IPA Gothic"
 
 PAYMENT_METHOD_TRANSFER = 1       #支払方法（振込）の場合
@@ -139,6 +144,12 @@ def payment_list_1(request):
             
             x = DETAIL_START_X + POS_TOTAL_CHAR
             
+             #add210210
+            if subtotal_amount >= 10000000:
+                p.setFont(font_name, 6.5)
+            else:
+                p.setFont(font_name, 7)
+            
             p.setFillColorRGB(0,0,188) #色を指定(青系)
             m = "￥" + str("{0:,d}".format(subtotal_amount))
             p.drawRightString(x*mm, y*mm, m)
@@ -156,6 +167,9 @@ def payment_list_1(request):
             m = "￥" + str("{0:,d}".format(subtotal_rough_estimate))
             p.drawRightString(x*mm, y*mm, m)
             subtotal_rough_estimate = 0
+            
+            #元に戻す
+            p.setFont(font_name, 7)
             
             #else:
             #    #印刷しないがカウンターのみリセット
@@ -182,7 +196,16 @@ def payment_list_1(request):
         
         #小計・合計カウント用
         #金額
-        if payment.billing_amount is not None:
+        
+        #upd200507
+        unpaid_flag = False
+        #未払金額有りの場合
+        if payment.unpaid_date is None and payment.unpaid_amount is not None and payment.unpaid_amount > 0 :
+            unpaid_flag = True
+            subtotal_amount += payment.unpaid_amount
+            total_amount += payment.unpaid_amount
+        #if payment.billing_amount is not None:
+        if payment.billing_amount is not None and unpaid_flag == False:
             subtotal_amount += payment.billing_amount
             total_amount += payment.billing_amount
         #概算(未払のみカウント)
@@ -251,17 +274,37 @@ def payment_list_1(request):
         #x += 25
         x += (POS_TOTAL_CHAR -43)
         
+        #if payment.payment_date is not None and (payment.unpaid_date is None and payment.unpaid_amount is None) :
+        
+        billing_amount = None
+        
         if payment.billing_amount is not None:
             billing_amount = "￥" + str("{0:,d}".format(payment.billing_amount))  #桁区切り
-            #billing_amount = "{0:>11}".format(billing_amount)  #右寄せ→できない
+        
+        #import pdb; pdb.set_trace()
+        
+        #add200507
+        #未払金額があれば、それを優先させる
+        #if payment.unpaid_date is None and payment.unpaid_amount is not None and payment.unpaid_amount > 0 :
+        if unpaid_flag == True:
+            billing_amount = "￥" + str("{0:,d}".format(payment.unpaid_amount))  #桁区切り
+        
+        if billing_amount is not None:
             p.drawRightString(x*mm, y*mm, billing_amount)
+        
+        #if payment.billing_amount is not None:
+        #    billing_amount = "￥" + str("{0:,d}".format(payment.billing_amount))  #桁区切り
+        #    p.drawRightString(x*mm, y*mm, billing_amount)
         
         #概算金額
         x += POS_ROUGH_ESTIMATE_CHAR
         if payment.rough_estimate is not None:
             p.setFillColorRGB(0.5490,0.5490,0.5490) #色を指定(グレー)
-        
-            rough_estimate = "￥" + str("{0:,d}".format(payment.rough_estimate))  #桁区切り
+            if unpaid_flag == False:
+                rough_estimate = "￥" + str("{0:,d}".format(payment.rough_estimate))  #桁区切り
+            else:
+                #未払有りの場合、未払金をのせる
+                rough_estimate = "￥" + str("{0:,d}".format(payment.unpaid_amount))  #桁区切り
             p.drawRightString(x*mm, y*mm, rough_estimate)
         p.setFillColorRGB(0,0,0) #色を黒に戻す
         #支払方法
@@ -303,6 +346,9 @@ def payment_list_1(request):
                     bank = None
                 if bank is not None:
                     bank_name = str(bank.name)
+                    
+                    #add201221
+                    p.setFont(font_name, 6.5)
                     
                     if len(bank_name) > 6:
                         #文字数が８文字以上ならカットする
@@ -349,10 +395,17 @@ def payment_list_1(request):
             payment_due_date = str(d)
             p.drawString(x*mm, y*mm, payment_due_date)
         x += 12
-        if payment.payment_date is not None:
+        #if payment.payment_date is not None:
+        #upd200507
+        if payment.payment_date is not None and (payment.unpaid_date is None and payment.unpaid_amount is None) :
             d = payment.payment_date.strftime('%m/%d')
             payment_date = str(d)
             p.drawString(x*mm, y*mm, payment_date)
+        elif payment.unpaid_amount is not None and payment.unpaid_date is not None:
+        #未払額支払有りの場合 add200514
+            d = payment.unpaid_date.strftime('%m/%d')
+            unpaid_date = str(d)
+            p.drawString(x*mm, y*mm, unpaid_date)
         else:
         #未払の場合
             x = DETAIL_START_X-1.5
@@ -391,6 +444,12 @@ def payment_list_1(request):
             m = "￥" + str("{0:,d}".format(subtotal_amount))
             p.drawRightString(x*mm, y*mm, m)
             
+            #add210210
+            if subtotal_amount >= 10000000:
+                p.setFont(font_name, 6.5)
+            else:
+                p.setFont(font_name, 7)
+            
             #概算金額小計
             #if (payment.payment_method_id == (PAYMENT_METHOD_DIRECT_DEBIT)) or (payment.payment_method_id == (PAYMENT_METHOD_CACHE)):
             x += POS_ROUGH_ESTIMATE_CHAR
@@ -416,6 +475,14 @@ def payment_list_1(request):
             #
     
             #金額合計
+            
+             #add210210
+            if total_amount >= 10000000:
+                p.setFont(font_name, 6.5)
+            else:
+                p.setFont(font_name, 7)
+            
+            
             y += SEP_Y #Yインクリメント
             #x = DETAIL_START_X + 41
             x = DETAIL_START_X + 40.5
@@ -433,6 +500,9 @@ def payment_list_1(request):
             m = "￥" + str("{0:,d}".format(total_rough_estimate))
             p.drawRightString(x*mm, y*mm, m)
             
+            #元に戻す
+            p.setFont(font_name, 7)
+                        
             #subtotal_amount = 0
             #罫線をセット
             p.line(POS_LEFT_SIDE*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_LEFT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) 
@@ -783,16 +853,19 @@ def payment_list_2(request):
             #支払金額
             x += 13
             if payment.payment_amount is not None:
-                payment_amount = "￥" + str("{0:,d}".format(payment.payment_amount))  #桁区切り
-                p.drawRightString(x*mm, y*mm, payment_amount)
+                if payment.unpaid_date is None:   #未払支払日があれば印刷しない add200514
+                    payment_amount = "￥" + str("{0:,d}".format(payment.payment_amount))  #桁区切り
+                    p.drawRightString(x*mm, y*mm, payment_amount)
             #手数料
             x += 13
             if payment.commission is not None:
                 commission = "￥" + str("{0:,d}".format(payment.commission))  #桁区切り
                 p.drawRightString(x*mm, y*mm, commission)
-            x += 10
+            #x += 10
+            x += 8
         else:
-            x += 36 
+            #x += 36
+            x += 34 
                 
         #振込・振替元銀行(#振込・振替の場合)
         if payment.payment_method_id == settings.ID_PAYMENT_METHOD_TRANSFER or \
@@ -804,12 +877,13 @@ def payment_list_2(request):
             if bank is not None:
                 bank_name = str(bank.name)
                 p.drawString(x*mm, y*mm, bank_name)
-            x += 7
+            #x += 7
+            #upd201221 第四北越合併のため、少し位置調整
+            x += 9
         else:
         
-            #違う！！！
-            x += 7
-            #x += 43
+            #x += 7
+            x += 9
         #
         
         #支払予定日
@@ -819,10 +893,23 @@ def payment_list_2(request):
             payment_due_date = str(d)
             p.drawString(x*mm, y*mm, payment_due_date)
         x += 12
-        if payment.payment_date is not None:
+        if payment.unpaid_date is not None:
+        #add200514
+        #未払支払日有りの場合
+            d = payment.unpaid_date.strftime('%m/%d')
+            unpaid_date = str(d)
+            p.drawString(x*mm, y*mm, unpaid_date)
+        elif payment.payment_date is not None:
             d = payment.payment_date.strftime('%m/%d')
             payment_date = str(d)
             p.drawString(x*mm, y*mm, payment_date)
+            
+            #add200514
+            #未払額があればオレンジ枠を出す
+            if payment.unpaid_amount is not None:
+                p.setFillColorRGB(1,0.3686,0.098) #色を指定(オレンジ系)
+                p.rect(POS_LEFT_SIDE*mm, (y-POS_AJDUST_HEIGHT)*mm, (POS_CHECK_PAYED-POS_LEFT_SIDE)*mm, POS_DETAIL_HEIGHT*mm, fill=True) #枠
+                p.setFillColorRGB(0,0,0)  #黒に戻す
         else:
         #未払の場合
             #x = DETAIL_START_X-1.5
@@ -891,7 +978,8 @@ def payment_list_2(request):
             p.line(POS_RIGHT_SIDE*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_RIGHT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) 
             p.line(POS_LEFT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm, POS_RIGHT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #横線
             #
-    
+             
+            
             #金額合計
             y += SEP_Y #Yインクリメント
             #x = DETAIL_START_X + 41
@@ -902,6 +990,7 @@ def payment_list_2(request):
             p.setFillColorRGB(0,0,188) #色を指定
             m = "￥" + str("{0:,d}".format(total_amount))
             p.drawRightString(x*mm, y*mm, m)
+            
             
             #概算金額
             #x += POS_ROUGH_ESTIMATE_CHAR
@@ -1089,6 +1178,8 @@ def filter():
     global search_query_paid
     search_query_paid = cache.get('search_query_paid')
     
+    search_query_pay_month_plus_to = None
+    
     #del190411
     #支払開始日の絞り込みは無しにする（あくまでも指定月以下で未払のものを検索）
     #支払開始月で抽出
@@ -1107,8 +1198,7 @@ def filter():
             #支払済のものだけ検索した場合に、検索開始月のフィルターを有効にする
             if results == None:
                 results = Payment.objects.all().filter(payment_due_date__gte=search_query_pay_month_from)
-                #test 191216
-                #results = Payment.objects.all().filter(payment_date__gte=search_query_pay_month_from)
+                
             else:
                 results = results.filter(payment_due_date__gte=search_query_pay_month_from)
                 #test 191216
@@ -1126,7 +1216,6 @@ def filter():
         #import pdb; pdb.set_trace()
     
         #複数月で検索しているか判定
-        #if search_query_pay_month_from_saved < search_query_pay_month_to:
         if (search_query_pay_month_from_saved == None) or (search_query_pay_month_from_saved < search_query_pay_month_to):
             multi_month = True
     
@@ -1138,21 +1227,26 @@ def filter():
             
         _, lastday = calendar.monthrange(end_year,end_month)
         
-        #◯月１日で検索するようにする
-        #search_query_pay_month_to += "-01"
         #指定月末日で検索するようにする
         search_query_pay_month_to += "-" + str(lastday)
-                
-        if results == None:
-            results = Payment.objects.all().filter(payment_due_date__lte=search_query_pay_month_to)
-            #test 191216
-            #results = Payment.objects.all().filter(payment_date__lte=search_query_pay_month_to)
-        else:
-            results = results.filter(payment_due_date__lte=search_query_pay_month_to)
-            #test 191216
-            #results = results.filter(payment_date__lte=search_query_pay_month_to)
-     
         
+        #upd210311
+        #振込のみ、３ヶ月先まで集計するようにする
+        #+3ヶ月足す(add210311)
+        plus_date = datetime(end_year, end_month, lastday) + relativedelta(months=3)  #年をまたいだ3ヶ月加算
+        end_year_plus = plus_date.year
+        end_month_plus = plus_date.month
+        _, lastday_plus = calendar.monthrange(end_year_plus,end_month_plus)
+            
+        search_query_pay_month_plus_to = str(end_year_plus) + "-" + str(end_month_plus) + "-" + str(lastday_plus)
+        ##
+            
+        if results == None:
+            #results = Payment.objects.all().filter(payment_due_date__lte=search_query_pay_month_to)
+            results = Payment.objects.all().filter(payment_due_date__lte=search_query_pay_month_plus_to)
+        else:
+            #results = results.filter(payment_due_date__lte=search_query_pay_month_to)
+            results = results.filter(payment_due_date__lte=search_query_pay_month_plus_to)
      
     ##add end
         
@@ -1198,14 +1292,30 @@ def filter():
     #支払方法で抽出
     search_query_payment = cache.get('search_query_payment')
     
-    #import pdb; pdb.set_trace()
-    
     if search_query_payment:
         if results == None:
             results = Payment.objects.all().filter(payment_method_id=search_query_payment)
         else:
             results = results.filter(payment_method_id=search_query_payment)
-     
+    #add220512
+    #更新日で抽出
+    search_query_update_date = cache.get('search_query_update_date')
+    
+    if search_query_update_date:
+        search_flag = True
+        try:
+            from_datetime = datetime.strptime(search_query_update_date, "%Y/%m/%d")
+        except ValueError:
+            from_datetime = datetime.now()
+                
+        #１日足す
+        to_datetime = from_datetime + timedelta(days=1)
+    
+        if results == None:
+            results = Payment.objects.all().filter(update_at__gte=from_datetime, update_at__lte=to_datetime)
+        else:
+            results = results.filter(update_at__gte=from_datetime, update_at__lte=to_datetime)
+    #add end
     
     #global search_query_paid
     #search_query_paid = cache.get('search_query_paid')
@@ -1230,12 +1340,37 @@ def filter():
         #add190412
         #支払済未選択の場合でも、支払日検索の場合は”未”の扱いとする
         #(社長仕様)
-        if search_query_pay_month_from:
+        #if search_query_pay_month_from:
+        if search_query_pay_month_to:
+        
+            search_month = search_query_pay_month_to
+            if search_query_pay_month_plus_to:
+                search_month = search_query_pay_month_plus_to
+                    
+        
             search_flag = True
             if results is None:
-                results = Payment.objects.all().filter(payment_date__isnull=True).order_by('order')
+                #results = Payment.objects.all().filter(payment_date__isnull=True).order_by('order')
+            
+                #upd200507
+                #支払日=null or 未払金有&未払支払日=null
+                results = Payment.objects.all().filter(
+                Q(unpaid_date__isnull=True) , Q(unpaid_amount__gt=0) |
+                Q(payment_date__isnull=True), Q(payment_due_date__lte=search_month)).order_by('order')
+                
+            
             else:
-                results = results.filter(payment_date__isnull=True)
+                #results = results.filter(payment_date__isnull=True)
+                
+                #upd200507
+                #支払日=null or 未払金有&未払支払日=null
+                results = Payment.objects.all().filter(
+                Q(unpaid_date__isnull=True) , Q(unpaid_amount__gt=0) |
+                Q(payment_date__isnull=True) , Q(payment_due_date__lte=search_month)
+                )
+            
+            #更に条件抽出
+            results = extract_payment(results, search_query_pay_month_to)
             
     if results is not None:
     #条件検索なら、並び順を設定
@@ -1249,7 +1384,9 @@ def filter():
         #支払日検索の場合
             if multi_month == False:
             #単月
-                results = results.order_by('payment_method_id', 'trade_division_id', 'payment_due_date', 'order', 'partner_id')
+                #results = results.order_by('payment_method_id', 'trade_division_id', 'payment_due_date', 'order', 'partner_id')
+                #upd200616
+                results = results.order_by('payment_method_id', 'trade_division_id', 'order', 'payment_due_date', 'partner_id')
             else:
             #複数月
                 results = results.order_by('payment_method_id', 'trade_division_id', 'partner_id', 'payment_due_date', 'order')
@@ -1259,4 +1396,34 @@ def filter():
     
     return results
 
-
+def extract_payment(results, search_query_pay_month_to):
+    #振込以外のものは、指定月より小さくさせる
+    list_of_ids = []
+    #import pdb; pdb.set_trace()
+            
+    for payment in results:
+        #振込以外は指定月以下のみカウントさせる(未払いかは下で処理)
+        chk = False
+        
+        #import pdb; pdb.set_trace()
+        
+        #if payment.payment_method_id == 1: #振込
+        if payment.trade_division_id == 0:  #仕入・外注
+            chk = True
+                
+            if payment.billing_amount == None or payment.billing_amount == 0:
+            #仕入・外注は金額がなければ外す
+                chk = False
+        else:
+            #振込以外は支払予定が指定月以下とする
+            dt = datetime.strptime(search_query_pay_month_to, '%Y-%m-%d')
+            if payment.payment_due_date <= dt.date():
+                chk = True
+                
+        if chk:
+            list_of_ids.append(payment.id)
+            
+    results = results.filter(id__in=list_of_ids)
+    
+    return results
+##
