@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load bootstrap %}
+{% load humanize %} 
 
 {% block title %}現金出納帳の編集{% endblock title %}
 
@@ -166,6 +167,10 @@
     }
   }
   
+  //function commas(input){
+  //    input.value = Number(input.value).toLocaleString();
+  //}
+    
   //del190809
   //イマイチのため一旦保留
   function predictAccountTitle_test(){
@@ -188,9 +193,8 @@
         },
     });
   
-  }
-  
-  
+  }  
+    
 </script>
 
 {% endblock content %}

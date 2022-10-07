@@ -9,6 +9,7 @@ urlpatterns = [
 	url(r'^index/$', views.views.index, name='index'),   # メニュー
 	# 取引先
     url(r'^partner/$', views.views.partner_list, name='partner_list'),   # 一覧
+    url(r'^password_auth_2/$', views.views.password_auth_2, name='password_auth_2'),   # 一覧(パスワード画面)
     url(r'^partner/add/$', views.views.partner_edit, name='partner_add'),  # 登録
     url(r'^partner/mod/(?P<partner_id>\d+)/$', views.views.partner_edit, name='partner_mod'),  # 修正
     url(r'^partner/del/(?P<partner_id>\d+)/$', views.views.partner_del, name='partner_del'),   # 削除
@@ -34,6 +35,8 @@ urlpatterns = [
     url('bank_branch_sort/', views.ajaxs.ajax_bank_branch_sort, name='bank_branch_sort'),                #ajax
     #支払
     url(r'^payment/$', views.views.payment_list, name='payment_list'),   # 一覧
+    url(r'^password_auth_1/$', views.views.password_auth_1, name='password_auth_1'),   # 一覧(パスワード画面)
+    
     url(r'^payment/add/$', views.views.payment_edit, name='payment_add'),  # 登録
     url(r'^payment/mod/(?P<payment_id>\d+)/$', views.views.payment_edit, name='payment_mod'),  # 修正
     url(r'^payment/del/(?P<payment_id>\d+)/$', views.views.payment_del, name='payment_del'),   # 削除

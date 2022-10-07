@@ -22,6 +22,7 @@ from django.conf import settings
 #画面認証用
 from django.contrib.auth.views import login, logout_then_login
 from account.views.views import Index
+#from account.views.views import PasswordAuth1  #add220826
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
@@ -30,6 +31,10 @@ urlpatterns = [
     url(r'^account/index/$', Index.as_view(), name='account_index'),
     url(r'^adusu/index', views.views.index),  #←追加
     url(r'^account/', include('account.urls', namespace='account')),
+
+    #url(r'^account/password_auth_1/$', PasswordAuth1.as_view(), name='password_auth_1'),
+    #url(r'^account/password_auth_1', views.views.password_auth_1),
+    
     #url(r'^select2/', include('django_select2.urls')),
 ]
 

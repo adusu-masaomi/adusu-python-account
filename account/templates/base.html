@@ -11,6 +11,8 @@ body > .container {
 }
 </style>
 
+<!--upd220916 https対応のため、linkがhttpのサイトはすべてhttpsに変更-->
+
 <html>
     <head>
         <meta charset="UTF-8" />
@@ -20,11 +22,11 @@ body > .container {
         <title>Adusu会計管理システム</title>
 
         <!-- Latest compiled and minified CSS -->
-        <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.1/css/bootstrap.min.css">
+        <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.1/css/bootstrap.min.css">
         <link href="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.min.css" type="text/css" media="screen" rel="stylesheet" />
         <!--for datepicker-->
         <link href="//cdn.bootcss.com/bootstrap-datetimepicker/4.17.44/css/bootstrap-datetimepicker.min.css" rel="stylesheet">
-        <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1/themes/redmond/jquery-ui.css" >
+        <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1/themes/redmond/jquery-ui.css" >
         <link rel="stylesheet" href="https://cdn.rawgit.com/maechabin/bootstrap-material-button-color/master/dist/cb-materialbtn.0.5.5.min.css" />
         <!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">-->
         <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.37/css/bootstrap-datetimepicker.min.css" />-->
@@ -41,14 +43,14 @@ body > .container {
         <!--<script src="{{ STATIC_URL }} /static/js/jquery-3.3.1.min.js" ></script>-->
         
         <!-- Latest compiled and minified JavaScript -->
-        <script src="http://netdna.bootstrapcdn.com/bootstrap/3.0.1/js/bootstrap.min.js"></script>
+        <script src="https://netdna.bootstrapcdn.com/bootstrap/3.0.1/js/bootstrap.min.js"></script>
         
         <!--for datepicker-->
-        <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
-        <script src="http://code.jquery.com/ui/1.11.0/jquery-ui.js"></script>
+        <script src="https://code.jquery.com/jquery-1.9.1.js"></script>
+        <script src="https://code.jquery.com/ui/1.11.0/jquery-ui.js"></script>
         <script src="//cdn.bootcss.com/moment.js/2.17.1/moment.min.js"></script>
         <script src="//cdn.bootcss.com/bootstrap-datetimepicker/4.17.44/js/bootstrap-datetimepicker.min.js"></script>
-        <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/i18n/jquery-ui-i18n.min.js"></script>
+        <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/i18n/jquery-ui-i18n.min.js"></script>
         
         <!--select2-->
         <script src="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/js/select2.min.js"></script>
@@ -89,7 +91,8 @@ body > .container {
                         <li class="dropdown">
                           <a href="#" class="dropdown-toggle" data-toggle="dropdown">マスター管理<b class="caret"></b></a>
 						  <ul class="dropdown-menu">
-                            <li><a href="{% url 'account:partner_list' %}">取引先マスター管理</a></li>
+                            <!--<li><a href="{% url 'account:partner_list' %}">取引先マスター管理</a></li>-->
+                            <li><a href="{% url 'account:password_auth_2' %}">取引先マスター管理</a></li>
 							<li><a href="{% url 'account:account_title_list' %}">勘定科目マスター管理</a></li>
                             <li><a href="{% url 'account:bank_list' %}">銀行マスター管理</a></li>
                             <li><a href="{% url 'account:bank_branch_list' %}">銀行支店マスター管理</a></li>
@@ -98,7 +101,8 @@ body > .container {
 						<li class="dropdown">
                           <a href="#" class="dropdown-toggle" data-toggle="dropdown">支払管理<b class="caret"></b></a>
 						  <ul class="dropdown-menu">
-                            <li><a href="{% url 'account:payment_list' %}">支払データ管理</a></li>
+                            <!--<li><a href="{% url 'account:payment_list' %}">支払データ管理</a></li>-->
+                            <li><a href="{% url 'account:password_auth_1' %}">支払データ管理</a></li>
                             <li><a href="{% url 'account:balance_sheet_list' %}">貸借データ管理</a></li>
                             <li><a href="{% url 'account:cash_flow_detail_expected_list' %}">資金繰(予)管理</a></li>
                             <li><a href="{% url 'account:cash_flow_detail_actual_list' %}">資金繰(実)管理</a></li>
@@ -166,6 +170,6 @@ body > .container {
     
     });
     
-  
   });
+
 </script>

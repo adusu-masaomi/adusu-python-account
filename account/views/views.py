@@ -59,6 +59,9 @@ from dateutil.relativedelta import relativedelta
 import calendar    #月末日取得用  add180911
 from django.db.models import Avg, Max, Min, Sum
 
+#from django.db import IntegrityError
+from django.http import HttpResponseRedirect
+
 #ログイン用
 @python_2_unicode_compatible
 class Index(View):
@@ -186,10 +189,69 @@ def bank_branch_list(request):
                   'account/bank_branch_list.html',     # 使用するテンプレート
                   {'bank_branchs': bank_branchs})         # テンプレートに渡すデータ
 
+#特定画面はsoumuユーザーでパスワード認証する
+#class PasswordAuth1(View):
+#    @method_decorator(login_required)
+#    def get(self, request):
+#        return render(request, 'account/password_auth_1.html')
+
+#特定画面はsoumuユーザーでパスワード認証する
+#支払画面
+def password_auth_1(request):
+#    #import pdb; pdb.set_trace()
+    #return render(request, 'account/payment_list.html')
     
+    if(request.method == 'GET'):
+        
+        return render(request, 'account/password_auth_1.html')
+    
+    elif(request.method == 'POST'):
+    
+        username = request.POST['username']
+        password = request.POST['password']
+        
+        #ここは総務用のパスワード認証できるようにする。ベタ打ちで
+        check = False
+        if (username == "soumu" and password == "470211#"):
+            check = True
+        
+        if check:
+            #get ok...
+            #return payment_list(request)
+            
+            return HttpResponseRedirect('../payment')
+ 
+        else:
+            return render(request, 'account/index.html')
+#取引先画面
+def password_auth_2(request):
+    
+    if(request.method == 'GET'):
+        
+        return render(request, 'account/password_auth_2.html')
+    
+    elif(request.method == 'POST'):
+    
+        username = request.POST['username']
+        password = request.POST['password']
+        
+        #ここは総務用のパスワード認証できるようにする。ベタ打ちで
+        check = False
+        if (username == "soumu" and password == "470211#"):
+            check = True
+        
+        if check:
+            
+            return HttpResponseRedirect('../partner')
+ 
+        else:
+            return render(request, 'account/index.html')
+
 def payment_list(request, number=None):
     """支払の一覧"""
     
+    #import pdb; pdb.set_trace()
+
     #return HttpResponse('◯◯◯の一覧')
     #payments = Payment.objects.all().order_by('id')
     payments = Payment.objects.all().order_by('order')
@@ -466,6 +528,7 @@ def payment_list(request, number=None):
                 #ここから更に、振込以外のものは指定月以下で抽出させる  add210311
                 results = extract_payment(results, search_query_pay_month_to)
         ###
+        
         
         
         #sort_by = request.GET.get('sort_by')
@@ -798,7 +861,7 @@ def cash_book_list(request):
             search_flag = True
             results = Cash_Book.objects.all().filter(settlement_date__gte=search_settlement_date_from).order_by('settlement_date', 'order')
         
-        if search_settlement_date_to:
+        if search_settlement_date_to and search_settlement_date_to is not 'None':
         #請求日で絞り込み(終了)
             search_flag = True
             if results is None:
@@ -806,14 +869,16 @@ def cash_book_list(request):
             else:
                 results = results.filter(settlement_date__lte=search_settlement_date_to).order_by('settlement_date', 'order')
         
-        if search_receipt_date_from:
+        #if search_receipt_date_from:
+        if search_receipt_date_from and search_receipt_date_from is not 'None':
         #領収日で絞り込み(開始)
             search_flag = True
             if results is None:
                 results = Cash_Book.objects.all().filter(receipt_date__gte=search_receipt_date_from).order_by('receipt_date', 'order')
             else:
                 results = results.filter(receipt_date__gte=search_receipt_date_from).order_by('receipt_date', 'order')
-        if search_receipt_date_to:
+        #if search_receipt_date_to:
+        if search_receipt_date_to and search_receipt_date_to is not 'None':
         #領収日で絞り込み(終了)
             search_flag = True
             if results is None:
@@ -844,6 +909,24 @@ def cash_book_list(request):
                 results = Cash_Book.objects.all().exclude(staff=search_not_staff).order_by(order_date, 'order')
             else:
                     results = results.exclude(staff=search_not_staff).order_by(order_date, 'order')
+        
+        #add220822
+        #何も検索項目のない場合は請求日で当日(-1day)検索する
+        if search_flag == False:
+            #
+            search_flag = True
+            
+            now_date = datetime.now()
+            now_date = now_date + timedelta(days=-1)
+            
+            search_settlement_date_from = now_date.strftime ("%Y-%m-%d")
+            search_settlement_date_to = now_date.strftime ("%Y-%m-%d")
+            search_receipt_date_from = ""
+            search_receipt_date_to = ""
+            
+            results = Cash_Book.objects.all().filter(settlement_date__gte=search_settlement_date_from).order_by('settlement_date', 'order')
+        
+        
         #残高を算出しておく
         if search_flag == True:
             if search_settlement_date_from or search_settlement_date_to:

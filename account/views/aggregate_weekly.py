@@ -40,7 +40,8 @@ def set_weekly(request):
     
     #import pdb; pdb.set_trace()
     
-    if temp_date_from is not None:
+    #if temp_date_from is not None:
+    if temp_date_from is not None and temp_date_to is not None:
     #if temp_date_from is not None and temp_date_from == True:
         #temp_date_from += "-01"
         

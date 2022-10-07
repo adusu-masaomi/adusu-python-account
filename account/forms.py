@@ -443,6 +443,9 @@ class Payment_ReserveForm(forms.ModelForm):
         
 class Cash_BookForm(forms.ModelForm):
     """現金出納帳のフォーム"""
+    
+    #expences = forms.IntegerField(widget=forms.TextInput(attrs={'onclick':'commas(self)'}))
+    
     class Meta:
         model = Cash_Book
         fields = ('settlement_date', 'receipt_date', 'description_partner', 'description_content', 'account_title', 'staff', 
@@ -502,7 +505,10 @@ class Cash_BookForm(forms.ModelForm):
         self.fields['expences'].widget.attrs['id'] = 'expences'
         self.fields['expences'].widget.attrs['style'] = 'width:120px; height:35px;'
         self.fields['expences'].widget.attrs['tabindex'] = 9
-       
+        
+        #expences = forms.IntegerField(widget=forms.TextInput(attrs={'onclick':'commas(self)'}))
+        #self.fields['expences'].widget.attrs['onclick'] = "commas(this)"
+        #self.fields['expences'].widget.attrs['oninput'] = "thousand_sep(this.id, this.value)"
 
 class Cash_Book_WeeklyForm(forms.ModelForm):
     """現金出納帳週末データのフォーム"""

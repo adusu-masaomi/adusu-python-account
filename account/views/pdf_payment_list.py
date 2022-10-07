@@ -231,9 +231,10 @@ def payment_list_1(request):
         p.setFillColorRGB(0,0,0)  #色を黒に戻す
         #
         
-        #複数月範囲の場合、または未払リストの場合は、見分けられるように月も出力
-        if multi_month == True or search_query_paid:
-            #import pdb; pdb.set_trace()
+        #複数月範囲の場合、または未払リスト、更新日検索の場合は、見分けられるように月も出力
+        #if multi_month == True or search_query_paid:  
+        #upd220714
+        if multi_month == True or search_query_paid or search_query_update_date:
             
             if payment.billing_year_month is not None:
                 x = DETAIL_START_X
@@ -384,6 +385,14 @@ def payment_list_1(request):
                 else:
                 #取引手数料等
                     x += 43
+        elif payment.payment_method_id == settings.ID_PAYMENT_METHOD_CASH:
+        #建築組合の場合はメモ書きを入れる
+            partner = Partner.objects.get(pk=payment.partner_id)
+            if partner.id == 106:
+                memo = "三条市建築組合にて"
+                p.drawString(x*mm, y*mm, memo)
+            
+            x += 43
         else:
             #振込以外は、口座情報がないのでX座標を調整する
             x += 43
@@ -1177,6 +1186,8 @@ def filter():
     
     global search_query_paid
     search_query_paid = cache.get('search_query_paid')
+    
+    global search_query_update_date  #add221007
     
     search_query_pay_month_plus_to = None
     
