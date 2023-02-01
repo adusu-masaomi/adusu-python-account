@@ -42,6 +42,7 @@ from account.views import aggregate_cash_flow as Aggregate_Cash_Flow  #add200115
 from account.views import aggregate_balance_sheet as Aggregate_Balance_Sheet_Tally
 from account.views import set_cash_flow_detail as Set_Cash_Flow_Detail  #add200121
 from account.views import set_cash_book_to_balance_sheet as Set_Cash_Book_To_Balance_Sheet    #add200124
+from account.views import set_daily_cash_flow as Set_Daily_Cash_flow    #add230130
 
 from django.db.models import Q  #add200507
 
@@ -1623,24 +1624,119 @@ def bank_branch_edit(request, bank_branch_id=None):
 
 def payment_edit(request, payment_id=None):
     """支払の編集"""
-         
+
+    pre_amount = 0     #変更前金額
+    pre_payment_date = None
+    pre_due_date = None
+    differ_amount = 0  #差異金額
+    new_flag = False
+    completed_flag = 0
+    
 #    return HttpResponse('勘定科目の編集')
     if payment_id:   # payment_id が指定されている (修正時)
         payment = get_object_or_404(Payment, pk=payment_id)
+        
+        #ここで変更前後の数値を比較？
+        #import pdb; pdb.set_trace()
+        pre_payment_date = payment.payment_date
+        pre_amount = payment.billing_amount
+        pre_due_date = payment.payment_due_date
+        completed_flag =  payment.completed_flag
+        #
     else:         # payment_id が指定されていない (追加時)
         payment = Payment()
-
+        
+        new_flag = True
+        
     if request.method == 'POST':
         form = PaymentForm(request.POST, instance=payment)  # POST された request データからフォームを作成
+        
         if form.is_valid():    # フォームのバリデーション
+        
+            ####
+            #add230130
+            #日次入出金ファイルを更新
+            
+            #差異数量をセット
+            after_amount = int(request.POST["billing_amount"])
+            
+            payment_due_date = None
+            if request.POST["payment_due_date"] != "":
+                payment_due_date = datetime.strptime(request.POST["payment_due_date"], '%Y-%m-%d')
+                payment_due_date = date(payment_due_date.year, payment_due_date.month, payment_due_date.day)
+            #
+            payment_date = None
+            if request.POST["payment_date"] != "":
+                payment_date = datetime.strptime(request.POST["payment_date"], '%Y-%m-%d')
+                payment_date = date(payment_date.year, payment_date.month, payment_date.day)
+            #
+            
+            if new_flag:
+            #新規の場合
+                differ_amount = after_amount  #数量をそのままセット
+            else:
+            #更新の場合
+                #pre_amount = payment.billing_amount
+            
+                #import pdb; pdb.set_trace()
+                
+                differ_flag = 0
+                
+                if payment_date == None or \
+                   pre_due_date == payment_date:
+                   #予定日と支払日付が同じで数量のみ変更 = flag0
+                
+                    if pre_payment_date is not None and \
+                       pre_payment_date != payment_date:
+                    #日付が予定日と同じだが、前回データと支払日が異なる場合
+                        differ_flag = 1
+                    elif pre_due_date != payment_due_date:
+                    #予定日が変更になった場合
+                        differ_flag = 1
+                else:
+                   #予定日と支払日付が異なる場合
+                    differ_flag = 1
+                
+                #import pdb; pdb.set_trace()
+                
+                #if payment_date == None or \
+                #   payment.payment_due_date == payment_date:
+                if differ_flag == 0:
+                    if pre_amount != after_amount:
+                        #differ_amount = pre_amount - after_amount
+                        differ_amount = after_amount - pre_amount
+                    else:
+                        differ_amount = 0
+                else:
+                    #日付が違う場合
+                    
+                    if pre_payment_date is None:  #支払日を最初から変更した場合
+                        pre_payment_date = pre_due_date
+                    
+                    #一旦、変更前の日付から減算する
+                    #Set_Daily_Cash_flow.delete_daily_cash_flow(payment.payment_due_date, pre_amount)
+                    Set_Daily_Cash_flow.delete_daily_cash_flow(pre_payment_date, pre_amount)
+                    #
+                    differ_amount = after_amount     #数量をそのままセット(追加更新のため)
+                    if payment_date is not None:
+                        payment_due_date = payment_date  #同様に日付もセット
+            #import pdb; pdb.set_trace()
+            
+            #日次入出金ファイルをセット
+            Set_Daily_Cash_flow.set_daily_cash_flow(payment_due_date, differ_amount)
+            
+            #日次入出金ファイルの完了フラグをセット
+            Set_Daily_Cash_flow.set_complete_flag(payment_due_date, completed_flag)
+            ####
+            #request.POST["payment_due_date"]
+            #
+        
             payment = form.save(commit=False)
             payment.save()
             
             #add200121
             #資金繰明細データも保存する
             Set_Cash_Flow_Detail.set_cash_flow_detail(payment.id)
-            #add200118
-            #import pdb; pdb.set_trace()
             
             #資金繰明細データへも保存する
             #billing_year_month, partnerでサーチ
@@ -1868,6 +1964,11 @@ def payment_del(request, payment_id):
     
     payment = get_object_or_404(Payment, pk=payment_id)
     payment.delete()
+    
+    #日次入出金データも減算(削除はしない)
+    Set_Daily_Cash_flow.delete_daily_cash_flow(payment.payment_due_date, payment.billing_amount)
+    #
+    
     return redirect('account:payment_list')
 
 def payment_reserve_del(request, payment_reserve_id):

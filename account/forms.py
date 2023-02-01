@@ -195,7 +195,7 @@ class PaymentForm(forms.ModelForm):
         model = Payment
         fields = ('billing_year_month', 'partner', 'trade_division_id','account_title', 
            'payment_method_id', 'source_bank', 'source_bank_branch', 'billing_amount', 'rough_estimate', 'payment_amount', 'commission', 
-           'payment_due_date','payment_date','unpaid_amount','unpaid_date','note')
+           'payment_due_date','payment_date','unpaid_amount','unpaid_date', 'completed_flag', 'note')
     
     def __init__(self, *args, **kwargs):
         super(PaymentForm, self).__init__(*args, **kwargs) # Call to ModelForm constructor
@@ -286,8 +286,14 @@ class PaymentForm(forms.ModelForm):
         self.fields['unpaid_date'].widget.attrs['style'] = 'width:120px; height:40px;'
         self.fields['unpaid_date'].widget.attrs['tabindex'] =  14
         
+        #完了フラグ
+        #self.fields['completed_flag'].widget = forms.CheckboxInput(attrs={'class': 'check'})
+        self.fields['completed_flag'].widget.attrs['style'] = 'width:140px; height:40px;'
+        self.fields['completed_flag'].widget.attrs['id'] = 'completed_flag_id_select'
+        self.fields['completed_flag'].widget.attrs['tabindex'] =  15
+        
         #備考
-        self.fields['note'].widget.attrs['tabindex'] = 15
+        self.fields['note'].widget.attrs['tabindex'] = 16
         
         #upd180418 フォーム揃える
         self.helper = FormHelper()
@@ -311,6 +317,7 @@ class PaymentForm(forms.ModelForm):
                  Div('payment_date'),
                  Div('unpaid_amount'),
                  Div('unpaid_date'),
+                 Div('completed_flag'),
                  Div('note'),
                  ButtonHolder(
                    Submit('submit', '登録', css_class='button white')

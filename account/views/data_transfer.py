@@ -10,9 +10,11 @@ from account.models import Bank
 from account.models import Bank_Branch
 from account.models import Payment
 from account.models import Payment_Reserve
+from account.models import DailyCashFlow
 #
 
 from account.views import set_cash_flow_detail as Set_Cash_Flow_Detail  #add200121
+from account.views import set_daily_cash_flow as Set_Daily_Cash_flow    #add230130
 
 from django.http import Http404, HttpResponse, QueryDict
 #from django.template import RequestContext
@@ -227,6 +229,16 @@ def automake_payment(request):
                     payment.payment_due_date = pay_date
                 #
                 
+                #
+                #入出金管理データの更新
+                billing_amount = payment.billing_amount
+                
+                #set_daily_cash_flow(pay_date, billing_amount)
+                Set_Daily_Cash_flow.set_daily_cash_flow(pay_date, billing_amount)
+                
+                #cash_book_pre_weekly = Cash_Book_Weekly.objects.filter(computation_date=dtm_pre_week.date()).first()
+                #
+                
                 payment.save()
                 
                 #add200121
@@ -256,6 +268,12 @@ def automake_payment(request):
             #
             payment.save()
             
+            #入出金管理データの更新
+            billing_amount = payment.billing_amount
+            pay_date = payment.payment_due_date
+            Set_Daily_Cash_flow.set_daily_cash_flow(pay_date, billing_amount)
+            #
+            
             #add200121
             #資金繰明細データも保存する
             Set_Cash_Flow_Detail.set_cash_flow_detail(payment.id)
@@ -280,6 +298,22 @@ def automake_payment(request):
     
     return redirect('account:payment_list')
 
+#add230128
+#日次入出金ファイルへ加算
+#def set_daily_cash_flow(pay_date, billing_amount):
+#    daily_cash_flow = DailyCashFlow.objects.filter(cash_flow_date=pay_date).first()
+#    if billing_amount is not None:
+#        if daily_cash_flow is None:
+#            #新規の場合
+#            daily_cash_flow = DailyCashFlow()
+#            daily_cash_flow.cash_flow_date = pay_date
+#            daily_cash_flow.expence = billing_amount
+#            daily_cash_flow.save()
+#        else:
+#            #追加の場合、出金予定額をプラスして保存
+#            daily_cash_flow.expence += billing_amount
+#            daily_cash_flow.save()
+    
 def date_eliminate_holiday(tmp_date, add_flag):
     #土日祝の場合、日付を加算する
     #引数add_flagが１の場合、翌日以降（加算）とし、２の場合は−１日（減算）とする

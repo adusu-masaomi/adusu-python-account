@@ -57,7 +57,8 @@
     
     //取引先のselect2設定
     $("#partner_select").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
-    
+    $("#completed_flag_id_select").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+
     $( "#partner_select" ).change(function(e) {
        var partner_id = $(this)[0].value;
        
@@ -220,7 +221,8 @@
       }
       // You can put more options here.
     });
-    //
+    // 
+    
     //支払日のdatepicker
      $('#payment_date_picker').datepicker({
       dateFormat: dateFormatNormal,
@@ -232,9 +234,26 @@
           $.datepicker.setDefaults({"defaultDate":date});
         }
       },
+      //onSelect: function(){
+      //},
       // You can put more options here.
     });
-    
+    $('#payment_date_picker').change(function() {
+      // Get the value of date field
+      var dateValue = $('#payment_date_picker').val();
+      
+      if (dateValue != "")
+      {
+        //完了にする
+        if (!(document.getElementById("unpaid_amount").value > 0))
+        {
+          $("#completed_flag_id_select").val(1).trigger('change');
+        }
+      }else{
+        //未払にする
+        $("#completed_flag_id_select").val(0).trigger('change');
+      }
+    })
     
     //未払支払日のdatepicker
      $('#unpaid_date_picker').datepicker({
@@ -249,6 +268,20 @@
       },
       // You can put more options here.
     });
+    
+    $('#unpaid_date_picker').change(function() {
+      // Get the value of date field
+      var dateValue = $('#unpaid_date_picker').val();
+      
+      if (dateValue != "")
+      {
+        //完了にする
+        $("#completed_flag_id_select").val(1).trigger('change');
+      }else{
+        //未払にする
+        $("#completed_flag_id_select").val(0).trigger('change');
+      }
+    })
     
     //ENTER→TABキーに変換する処理。
     //$('[tabindex]').keydown(function (e) {

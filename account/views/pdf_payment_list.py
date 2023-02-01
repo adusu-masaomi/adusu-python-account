@@ -1397,7 +1397,9 @@ def filter():
             #単月
                 #results = results.order_by('payment_method_id', 'trade_division_id', 'payment_due_date', 'order', 'partner_id')
                 #upd200616
-                results = results.order_by('payment_method_id', 'trade_division_id', 'order', 'payment_due_date', 'partner_id')
+                #results = results.order_by('payment_method_id', 'trade_division_id', 'order', 'payment_due_date', 'partner_id')
+                #221212 取引先増えたため変更
+                results = results.order_by('payment_method_id', 'trade_division_id', 'partner_id', 'payment_due_date', 'order')
             else:
             #複数月
                 results = results.order_by('payment_method_id', 'trade_division_id', 'partner_id', 'payment_due_date', 'order')
