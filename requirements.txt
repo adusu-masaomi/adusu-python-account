@@ -68,5 +68,5 @@ tqdm==4.23.3
 tweepy==3.6.0
 urllib3==1.22
 webstack-django-sorting==1.0.1
-Werkzeug==0.14.1
+Werkzeug==0.15.5
 wget==3.2
