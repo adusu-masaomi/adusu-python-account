@@ -16,6 +16,8 @@ from account.models import Cash_Flow_Detail_Expected
 from account.models import Cash_Flow_Detail_Actual
 from account.models import Balance_Sheet
 from account.models import Balance_Sheet_Tally
+from account.models import Expence
+from account.models import Deposit
 #
 from account.forms import PartnerForm
 from account.forms import Account_TitleForm
@@ -32,8 +34,8 @@ import json
 from itertools import chain
 from django.core.cache import cache
 from django.db.models import Sum
-
 from django.http import Http404, HttpResponse, QueryDict
+
 from django.template import RequestContext
 #from django.core.urlresolvers import reverse
 
@@ -44,7 +46,9 @@ from account.views import set_cash_flow_detail as Set_Cash_Flow_Detail  #add2001
 from account.views import set_cash_book_to_balance_sheet as Set_Cash_Book_To_Balance_Sheet    #add200124
 from account.views import set_daily_cash_flow as Set_Daily_Cash_flow    #add230130
 
-from django.db.models import Q  #add200507
+from django.conf import settings
+from django.db.models import Q  
+
 
 #ログイン用
 #from __future__ import unicode_literals
@@ -62,6 +66,12 @@ from django.db.models import Avg, Max, Min, Sum
 
 #from django.db import IntegrityError
 from django.http import HttpResponseRedirect
+
+#グローバル変数
+table_type_id = 0  
+income_expence_flag = 0 # 0：収入  1:支出
+#no_complete_flag = False
+#
 
 #ログイン用
 @python_2_unicode_compatible
@@ -1624,24 +1634,51 @@ def bank_branch_edit(request, bank_branch_id=None):
 
 def payment_edit(request, payment_id=None):
     """支払の編集"""
-
-    pre_amount = 0     #変更前金額
+    
+    #変更前のもの
+    pre_payment_amount = 0    
     pre_payment_date = None
+    pre_payment_due_date = None
+    #変更前のもの(未払)
+    pre_unpaid_amount = 0
+    pre_unpaid_date = None
+    pre_unpaid_due_date = None
+    #関数用
+    pre_amount = 0
+    pre_date = None
     pre_due_date = None
+    #
+    after_amount = 0
+    after_due_date = None
+    after_date = None
+    #
+    
     differ_amount = 0  #差異金額
     new_flag = False
     completed_flag = 0
+    is_estimate = 0
+    
+    global table_type_id
+    table_type_id = 1
+    
+    global income_expence_flag
+    income_expence_flag = settings.FLAG_BP_EXPENCE   #収入支出フラグ(支出)
     
 #    return HttpResponse('勘定科目の編集')
     if payment_id:   # payment_id が指定されている (修正時)
         payment = get_object_or_404(Payment, pk=payment_id)
         
-        #ここで変更前後の数値を比較？
-        #import pdb; pdb.set_trace()
+        #変更前の日付・金額をセット
+        pre_payment_amount = payment.billing_amount
+        if pre_payment_amount is None:
+            pre_payment_amount = payment.rough_estimate
         pre_payment_date = payment.payment_date
-        pre_amount = payment.billing_amount
-        pre_due_date = payment.payment_due_date
-        completed_flag =  payment.completed_flag
+        pre_payment_due_date = payment.payment_due_date
+        
+        #変更前の日付・金額をセット
+        pre_unpaid_amount = payment.unpaid_amount
+        pre_unpaid_date = payment.unpaid_date
+        pre_unpaid_due_date = payment.unpaid_due_date
         #
     else:         # payment_id が指定されていない (追加時)
         payment = Payment()
@@ -1651,88 +1688,102 @@ def payment_edit(request, payment_id=None):
     if request.method == 'POST':
         form = PaymentForm(request.POST, instance=payment)  # POST された request データからフォームを作成
         
+        #import pdb; pdb.set_trace()
+                        
         if form.is_valid():    # フォームのバリデーション
         
             ####
             #add230130
             #日次入出金ファイルを更新
             
+            completed_flag =  payment.completed_flag  #完了フラグ(フォーム入力後)
+            payment_id = payment.id
+            
+            #
+            
+            #変更前の日付・金額をセット(関数用)
+            pre_amount = pre_payment_amount
+            pre_date = pre_payment_date
+            pre_due_date = pre_payment_due_date
+            #
+            
             #差異数量をセット
-            after_amount = int(request.POST["billing_amount"])
+            #after_amount = 0
+            if (request.POST["billing_amount"] != ""):
+                after_amount = int(request.POST["billing_amount"])
+            elif (request.POST["rough_estimate"] != ""):
+                after_amount = int(request.POST["rough_estimate"])
+                is_estimate = 1
             
-            payment_due_date = None
+            #after_due_date = None
+            #after_date = None
             if request.POST["payment_due_date"] != "":
-                payment_due_date = datetime.strptime(request.POST["payment_due_date"], '%Y-%m-%d')
-                payment_due_date = date(payment_due_date.year, payment_due_date.month, payment_due_date.day)
-            #
-            payment_date = None
+                after_due_date = datetime.strptime(request.POST["payment_due_date"], '%Y-%m-%d')
+                after_due_date = date(after_due_date.year, after_due_date.month, after_due_date.day)
             if request.POST["payment_date"] != "":
-                payment_date = datetime.strptime(request.POST["payment_date"], '%Y-%m-%d')
-                payment_date = date(payment_date.year, payment_date.month, payment_date.day)
-            #
+                after_date = datetime.strptime(request.POST["payment_date"], '%Y-%m-%d')
+                after_date = date(after_date.year, after_date.month, after_date.day)
             
-            if new_flag:
-            #新規の場合
-                differ_amount = after_amount  #数量をそのままセット
-            else:
-            #更新の場合
-                #pre_amount = payment.billing_amount
+            #まず通常の支払日でdaily_cash_flowへ書き込む。
+            first_flag = True
             
-                #import pdb; pdb.set_trace()
-                
-                differ_flag = 0
-                
-                if payment_date == None or \
-                   pre_due_date == payment_date:
-                   #予定日と支払日付が同じで数量のみ変更 = flag0
-                
-                    if pre_payment_date is not None and \
-                       pre_payment_date != payment_date:
-                    #日付が予定日と同じだが、前回データと支払日が異なる場合
-                        differ_flag = 1
-                    elif pre_due_date != payment_due_date:
-                    #予定日が変更になった場合
-                        differ_flag = 1
-                else:
-                   #予定日と支払日付が異なる場合
-                    differ_flag = 1
-                
-                #import pdb; pdb.set_trace()
-                
-                #if payment_date == None or \
-                #   payment.payment_due_date == payment_date:
-                if differ_flag == 0:
-                    if pre_amount != after_amount:
-                        #differ_amount = pre_amount - after_amount
-                        differ_amount = after_amount - pre_amount
-                    else:
-                        differ_amount = 0
-                else:
-                    #日付が違う場合
-                    
-                    if pre_payment_date is None:  #支払日を最初から変更した場合
-                        pre_payment_date = pre_due_date
-                    
-                    #一旦、変更前の日付から減算する
-                    #Set_Daily_Cash_flow.delete_daily_cash_flow(payment.payment_due_date, pre_amount)
-                    Set_Daily_Cash_flow.delete_daily_cash_flow(pre_payment_date, pre_amount)
-                    #
-                    differ_amount = after_amount     #数量をそのままセット(追加更新のため)
-                    if payment_date is not None:
-                        payment_due_date = payment_date  #同様に日付もセット
             #import pdb; pdb.set_trace()
             
-            #日次入出金ファイルをセット
-            Set_Daily_Cash_flow.set_daily_cash_flow(payment_due_date, differ_amount)
+            set_amount_to_daily_cash_flow(request, new_flag, completed_flag, first_flag, payment_id, 
+                                                 pre_amount, pre_date, pre_due_date,
+                                                 after_amount, after_date, after_due_date)
             
-            #日次入出金ファイルの完了フラグをセット
-            Set_Daily_Cash_flow.set_complete_flag(payment_due_date, completed_flag)
-            ####
-            #request.POST["payment_due_date"]
-            #
-        
+            #ここでPaymentを保存(通常の処理)
             payment = form.save(commit=False)
             payment.save()
+            
+            #日次出金データへも保存(上の行でID作成されていることが前提)
+            tmp_date = after_due_date
+            if after_date is not None:
+                tmp_date = after_date
+            
+            #Set_Daily_Cash_flow.set_expence(payment, tmp_date, after_amount, is_estimate)
+            Set_Daily_Cash_flow.set_payment_to_expence(payment, tmp_date, after_amount, is_estimate)
+            ####
+                        
+            #変更前の未払日付・未払金額をセット(関数用)
+            first_flag = False
+            
+            pre_amount = 0
+            if pre_unpaid_amount is not None:
+                pre_amount = pre_unpaid_amount
+            pre_date = pre_unpaid_date
+            pre_due_date = pre_unpaid_due_date
+            
+            after_amount = 0
+            if (request.POST["unpaid_amount"] != ""):
+                after_amount = int(request.POST["unpaid_amount"])
+            
+            #未払金額が発生している場合のみ、日次入出金ファイルを更新
+            if after_amount > 0 or \
+               pre_amount > 0 and after_amount == 0: 
+                
+                after_due_date = None
+                after_date = None
+                
+                if request.POST["unpaid_due_date"] != "":
+                    after_due_date = datetime.strptime(request.POST["unpaid_due_date"], '%Y-%m-%d')
+                    after_due_date = date(after_due_date.year, after_due_date.month, after_due_date.day)
+                if request.POST["unpaid_date"] != "":
+                    after_date = datetime.strptime(request.POST["unpaid_date"], '%Y-%m-%d')
+                    after_date = date(after_date.year, after_date.month, after_date.day)
+                    
+                set_amount_to_daily_cash_flow(request, new_flag, completed_flag, first_flag, payment_id,
+                                                 pre_amount, pre_date, pre_due_date,
+                                                 after_amount, after_date, after_due_date)
+            ####
+            
+        
+            #payment = form.save(commit=False)
+            #payment.save()
+            
+            ##日次出金データへも保存(上の行でID作成されていることが前提)
+            #Set_Daily_Cash_flow.set_expence(payment, after_due_date, after_amount, is_estimate)
             
             #add200121
             #資金繰明細データも保存する
@@ -1772,6 +1823,72 @@ def payment_edit(request, payment_id=None):
 
     return render(request, 'account/payment_edit.html', dict(form=form, payment_id=payment_id))
 
+#日次入出金ファイルへ書き込み
+def set_amount_to_daily_cash_flow(request, new_flag, completed_flag, first_flag, table_id, 
+                                         pre_amount, pre_date, pre_due_date, 
+                                         after_amount, after_date, after_due_date):
+
+    #共通化できるか？？
+
+    differ_amount = 0
+    differ_flag = 0
+    
+    #未処理...
+    if new_flag:
+    #新規の場合
+        differ_amount = after_amount  #数量をそのままセット
+        if after_date is not None:
+            after_due_date = after_date
+    else:
+    #更新の場合
+        differ_flag = 0
+                
+        if after_date == None or \
+            pre_due_date == after_date:
+            #予定日と支払日付が同じで数量のみ変更 = flag0
+                
+            if pre_date is not None and \
+                pre_date != after_date:
+            #日付が予定日と同じだが、前回データと支払日が異なる場合
+                differ_flag = 1
+            elif pre_due_date != after_due_date:
+            #予定日が変更になった場合
+                differ_flag = 1
+        else:
+        #予定日と支払日付が異なる場合
+            differ_flag = 1
+                
+        if differ_flag == 0:
+            #差異数量を求める
+            if pre_amount != after_amount:
+                if pre_amount is None:
+                    pre_amount = 0
+                differ_amount = after_amount - pre_amount
+            else:
+                differ_amount = 0
+        else:
+            #日付が違う場合
+                    
+            if pre_date is None:  #支払日を最初から変更した場合
+                pre_date = pre_due_date
+                    
+            #一旦、変更前の日付から減算する
+            Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, pre_date, pre_amount, income_expence_flag)
+            #
+            differ_amount = after_amount     #数量をそのままセット(追加更新のため)
+            if after_date is not None:
+                after_due_date = after_date  #同様に日付もセット
+    
+    #import pdb; pdb.set_trace()
+    
+    #日次入出金ファイルをセット
+    #Set_Daily_Cash_flow.set_daily_cash_flow(after_due_date, differ_amount)
+    Set_Daily_Cash_flow.set_daily_cash_flow(after_due_date, differ_amount, income_expence_flag)
+            
+    #日次入出金ファイルの完了フラグをセット
+    if first_flag:
+        Set_Daily_Cash_flow.set_complete_flag(table_id, table_type_id, after_due_date, completed_flag, income_expence_flag)
+            
 def payment_reserve_edit(request, payment_reserve_id=None):
     """支払予約の編集"""
          
@@ -1797,23 +1914,136 @@ def payment_reserve_edit(request, payment_reserve_id=None):
 
 def cash_book_edit(request, cash_book_id=None):
     """出納帳の編集"""
-         
+    
+    #変数初期化
+    pre_cash_book_income = 0
+    pre_cash_book_expence = 0
+    pre_settlement_date = None
+    #関数用
+    pre_amount = 0
+    pre_date = None
+    pre_due_date = None
+    #
+    after_cash_book_income = 0
+    after_cash_book_expence = 0
+    after_amount = 0
+    after_due_date = None
+    after_date = None
+    #
+    differ_amount = 0  #差異金額
+    new_flag = False
+    completed_flag = 0
+    
+    global table_type_id
+    table_type_id = 3
+    
+    global income_expence_flag
+    
+    #
+    
 #    return HttpResponse('勘定科目の編集')
     if cash_book_id:   # cash_book_id が指定されている (修正時)
         cash_book = get_object_or_404(Cash_Book, pk=cash_book_id)
+        
+        #変更前の日付・金額をセット
+        if cash_book.incomes is not None:
+            pre_cash_book_income = cash_book.incomes
+        if cash_book.expences is not None:
+            pre_cash_book_expence = cash_book.expences
+        pre_settlement_date = cash_book.settlement_date
+        #
+        
     else:         # cash_book_id が指定されていない (追加時)
         cash_book = Cash_Book()
-
+        new_flag = True
     if request.method == 'POST':
         form = Cash_BookForm(request.POST, instance=cash_book)  # POST された request データからフォームを作成
         if form.is_valid():    # フォームのバリデーション
+            
+            #import pdb; pdb.set_trace()
+            
+            #日次入出金ファイルを更新
+            completed_flag = 1  #1固定で
+            cash_book_id = cash_book.id
+            
+            #取引先コードの有無(有の場合、入出金ファイルにアクセスしない
+            is_partner = False
+            if request.POST["partner"] != "":
+                is_partner = True
+            #
+            
+            #変更前の日付・金額をセット(関数用)
+            if pre_cash_book_expence > 0:
+                pre_amount = pre_cash_book_expence
+            elif pre_cash_book_income > 0:
+                pre_amount = pre_cash_book_income
+            
+            pre_date = pre_settlement_date
+            pre_due_date = pre_settlement_date  #予定日はないが関数用に実績日をそのままセット
+            
+            #after_cash_book_income = 0
+            if request.POST["incomes"] != "":
+                after_cash_book_income = int(request.POST["incomes"])
+            #after_cash_book_expence = 0
+            if request.POST["expences"] != "":
+                after_cash_book_expence = int(request.POST["expences"])
+            
+            #支出→入金or 入金→支出の場合、
+            #一旦、変更前の日付から減算する
+            if is_partner == False:
+                if after_cash_book_income > 0 and pre_cash_book_income == 0:
+                    #支出→入金に変更したとみなす
+                    new_flag = True
+                    Expence.objects.filter(table_id=cash_book_id, table_type_id=settings.TABLE_TYPE_CASH_BOOK).delete()
+                    income_expence_flag = settings.FLAG_BP_EXPENCE
+                    Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, pre_date, pre_amount, income_expence_flag)
+                elif after_cash_book_expence > 0 and pre_cash_book_expence == 0:
+                    #入金→支出に変更したとみなす
+                    new_flag = True
+                    Deposit.objects.filter(table_id=cash_book_id, table_type_id=settings.TABLE_TYPE_CASH_BOOK).delete()
+                    income_expence_flag = settings.FLAG_BP_INCOME
+                    Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, pre_date, pre_amount, income_expence_flag)
+            
+            #変更後金額をセット
+            if after_cash_book_income > 0:
+                after_amount = after_cash_book_income
+                income_expence_flag = settings.FLAG_BP_INCOME
+            elif after_cash_book_expence > 0:
+                after_amount = after_cash_book_expence
+                income_expence_flag = settings.FLAG_BP_EXPENCE
+            #変更後日付をセット
+            if request.POST["settlement_date"] != "":
+                after_date = datetime.strptime(request.POST["settlement_date"], '%Y-%m-%d')
+                after_date = date(after_date.year, after_date.month, after_date.day)
+            after_due_date = after_date  #予定日はないが関数用に実績日をそのままセット
+            #
+            first_flag = True
+            #if cash_book.partner is None:
+            if is_partner == False:
+                set_amount_to_daily_cash_flow(request, new_flag, completed_flag, first_flag, cash_book_id, pre_amount, pre_date, pre_due_date,
+                                                 after_amount, after_date, after_due_date)
+            #
+            
+            
             cash_book = form.save(commit=False)
             cash_book.save()
             
+            #日次入金・出金データを作成(上の行でID作成されていることが前提)
+            tmp_date = after_date
+            if is_partner == False:
+                if after_cash_book_income > 0:
+                #収入の場合
+                    Set_Daily_Cash_flow.set_cash_book_to_deposit(cash_book, tmp_date, after_amount)
+                #支出の場合
+                elif after_cash_book_expence > 0:
+                    Set_Daily_Cash_flow.set_cash_book_to_expence(cash_book, tmp_date, after_amount)
+                
             #add200124
             #社長のデータの場合は、試算表・貸借表のデータにも保存する
             Set_Cash_Flow_Detail.set_cash_flow_detail_from_cash_book(cash_book.id)
-            Set_Cash_Book_To_Balance_Sheet.set_balance_sheet(cash_book.id)
+            
+            #del230330 使われてない為(別用途で使用開始した)
+            #Set_Cash_Book_To_Balance_Sheet.set_balance_sheet(cash_book.id)
             #
             
             return redirect('account:cash_book_list')
@@ -1869,12 +2099,54 @@ def cash_flow_header_edit(request, cash_flow_header_id=None):
 
 def balance_sheet_edit(request, balance_sheet_id=None):
     """貸借表の編集"""
+    
+    #変数初期化
+    
+    pre_balance_sheet_amount = 0
+    pre_accrual_date = None
+    #関数用
+    pre_amount = 0
+    pre_date = None
+    pre_due_date = None
+    #
+    after_amount = 0
+    after_due_date = None
+    after_date = None
+    #
+    differ_amount = 0  #差異金額
+    new_flag = False
+    completed_flag = 0
+    
+    pre_income_expence_flag = None
+    
+    global table_type_id
+    table_type_id = settings.TABLE_TYPE_BALANCE_SHEET
+    
+    global income_expence_flag
+    #global no_complete_flag
+    #no_complete_flag = True  #complete_flagを操作しない
+    #
+        
 #    return HttpResponse('貸借表の編集')
     if balance_sheet_id:   # account_title_id が指定されている (修正時)
         balance_sheet = get_object_or_404(Balance_Sheet, pk=balance_sheet_id)
+        
+        #add230328
+        #変更前の日付・金額をセット
+        pre_balance_sheet_amount = balance_sheet.amount
+        pre_accrual_date = balance_sheet.accrual_date
+        #
+        
+        pre_income_expence_flag = settings.FLAG_BP_EXPENCE     #デフォルト(貸)
+        
+        if balance_sheet.borrow_lend_id is not None and \
+           balance_sheet.borrow_lend_id == 1:
+            pre_income_expence_flag = settings.FLAG_BP_INCOME  #借
+        
     else:         # cash_flow_header_id が指定されていない (追加時)
         balance_sheet = Balance_Sheet()
     
+        new_flag = True
     #貸借表集計からの画面遷移の場合のパラメータをセット
     if request.method == 'GET':
         search_accrual_date_from = request.GET.get('q_accrual_date_from', None)
@@ -1897,12 +2169,13 @@ def balance_sheet_edit(request, balance_sheet_id=None):
         if search_query_borrow_lend_id:
             cache.set('search_query_borrow_lend_id', search_query_borrow_lend_id, 10800)
         
+        #?? del230329
         #発生日をセット(開始日より)
-        if search_accrual_date_from:
-            balance_sheet.accrual_date = search_accrual_date_from
+        #if search_accrual_date_from:
+        #    balance_sheet.accrual_date = search_accrual_date_from
         #貸借IDをセット
-        if search_query_borrow_lend_id:
-            balance_sheet.borrow_lend_id = search_query_borrow_lend_id
+        #if search_query_borrow_lend_id:
+        #    balance_sheet.borrow_lend_id = search_query_borrow_lend_id
             
         #import pdb; pdb.set_trace()
     #
@@ -1913,8 +2186,84 @@ def balance_sheet_edit(request, balance_sheet_id=None):
         #import pdb; pdb.set_trace()
         
         if form.is_valid():    # フォームのバリデーション
+            
+            #日次入出金ファイルを更新
+            
+            completed_flag = 1  #1固定で
+            balance_sheet_id = balance_sheet.id
+            #
+            
+            #変更前の日付・金額をセット(関数用)
+            pre_amount = pre_balance_sheet_amount
+            pre_date = pre_accrual_date
+            pre_due_date = pre_accrual_date  #予定日はないが関数用に実績日をそのままセット
+            #
+            
+            #収支フラグ判定
+            income_expence_flag = settings.FLAG_BP_INCOME
+            if request.POST["borrow_lend_id"] != "":
+                if request.POST["borrow_lend_id"] == "0":  #貸
+                    income_expence_flag = settings.FLAG_BP_EXPENCE  #支出
+            
+            #import pdb; pdb.set_trace()
+            
+            ###income_expence_flag !==== borrow_lend_id
+            
+            #貸→借 or 借→貸の場合
+            #一旦、変更前の日付から減算する
+            if pre_income_expence_flag is not None and \
+               pre_income_expence_flag != income_expence_flag:
+               
+                if pre_income_expence_flag == settings.FLAG_BP_EXPENCE:
+                #貸→借の場合
+                    new_flag = True
+                    Expence.objects.filter(table_id=balance_sheet_id, table_type_id=settings.TABLE_TYPE_BALANCE_SHEET).delete()
+                    Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, pre_date, pre_amount, pre_income_expence_flag)
+                elif pre_income_expence_flag == settings.FLAG_BP_INCOME:
+                #借→貸の場合
+                    new_flag = True
+                    Deposit.objects.filter(table_id=balance_sheet_id, table_type_id=settings.TABLE_TYPE_BALANCE_SHEET).delete()
+                    Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, pre_date, pre_amount, pre_income_expence_flag)
+            #
+            
+            #差異数量をセット
+            if (request.POST["amount"] != ""):
+                after_amount = int(request.POST["amount"])
+            
+            #日付をセット
+            if request.POST["accrual_date"] != "":
+                after_date = datetime.strptime(request.POST["accrual_date"], '%Y-%m-%d')
+                after_date = date(after_date.year, after_date.month, after_date.day)
+            after_due_date = after_date  #予定日はないが関数用に実績日をそのままセット
+            
+            
+            #import pdb; pdb.set_trace()
+            
+            #まず通常の支払日でdaily_cash_flowへ書き込む。
+            first_flag = True
+            
+            set_amount_to_daily_cash_flow(request, new_flag, completed_flag, first_flag, balance_sheet_id, pre_amount, pre_date, pre_due_date,
+                                                 after_amount, after_date, after_due_date)
+            
+            
+            #保存(通常の処理)
             balance_sheet = form.save(commit=False)
             balance_sheet.save()
+            
+            #日次入金・出金データを作成(上の行でID作成されていることが前提)
+            #tmp_date = after_due_date
+            tmp_date = after_date
+            #if after_date is not None:
+            #    tmp_date = after_date
+            
+            if income_expence_flag == settings.FLAG_BP_INCOME:
+            #収入の場合
+                Set_Daily_Cash_flow.set_deposit(balance_sheet, tmp_date, after_amount)
+            elif income_expence_flag == settings.FLAG_BP_EXPENCE:
+            #支払の場合
+                Set_Daily_Cash_flow.set_balance_sheet_to_expence(balance_sheet, tmp_date, after_amount)
+            
+            #
             
             #直接遷移フラグ
             direct_from_tally_flag = request.GET.get('direct_from_tally_flag', None)
@@ -1965,8 +2314,23 @@ def payment_del(request, payment_id):
     payment = get_object_or_404(Payment, pk=payment_id)
     payment.delete()
     
+    #日次出金データを削除
+    #Set_Daily_Cash_flow.delete_expence(payment_id)
+    #貸借表データがあれば削除
+    #Expence.objects.filter(table_id=payment_id).delete()
+    Expence.objects.filter(table_id=payment_id, table_type_id=1).delete()
+    
+    global table_type_id
+    table_type_id = 1
+    
+    global income_expence_flag
+    income_expence_flag = 1   #収入支出フラグ(支出)
+    
     #日次入出金データも減算(削除はしない)
-    Set_Daily_Cash_flow.delete_daily_cash_flow(payment.payment_due_date, payment.billing_amount)
+    if payment.payment_date is not None:
+        Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, payment.payment_date, payment.billing_amount, income_expence_flag)
+    else:
+        Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, payment.payment_due_date, payment.billing_amount, income_expence_flag)
     #
     
     return redirect('account:payment_list')
@@ -1990,6 +2354,34 @@ def cash_book_del(request, cash_book_id):
     cash_book = get_object_or_404(Cash_Book, pk=cash_book_id)
     cash_book.delete()
     
+    #日次入金・出金データを削除
+    #if cash_book.expences is not None and cash_book.expences > 0:
+        
+    #elif cash_book.incomes is not None and cash_book.incomes > 0:
+    if cash_book.incomes is not None and cash_book.incomes > 0:
+        #入金
+        Deposit.objects.filter(table_id=cash_book_id, table_type_id=settings.TABLE_TYPE_CASH_BOOK).delete()
+    elif cash_book.expences is not None and cash_book.expences > 0:
+        #出金
+        Expence.objects.filter(table_id=cash_book_id, table_type_id=settings.TABLE_TYPE_CASH_BOOK).delete()
+    
+    #日次入出金データも減算(削除はしない)
+    global table_type_id
+    table_type_id = settings.TABLE_TYPE_CASH_BOOK
+    
+    amount = 0
+    global income_expence_flag
+    if cash_book.expences is not None and cash_book.expences > 0:
+        income_expence_flag = settings.FLAG_BP_EXPENCE
+        amount = cash_book.expences
+    elif cash_book.incomes is not None and cash_book.incomes > 0:
+        income_expence_flag = settings.FLAG_BP_INCOME
+        amount = cash_book.incomes
+    
+    if cash_book.partner is None:  #取引先ID未入力の場合のみ消去
+        Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, cash_book.settlement_date, amount, income_expence_flag)
+    #
+    
     return redirect('account:cash_book_list')
 
 def cash_book_weekly_del(request, cash_book_weekly_id):
@@ -2010,8 +2402,29 @@ def cash_flow_detail_actual_del(request, cash_flow_detail_actual_id):
     return redirect('account:cash_flow_detail_actual_list')
 def balance_sheet_del(request, balance_sheet_id):
     """貸借表の削除"""
+    #import pdb; pdb.set_trace()
+    
     balance_sheet = get_object_or_404(Balance_Sheet, pk=balance_sheet_id)
     balance_sheet.delete()
+    
+    #日次入金・出金データを削除
+    if balance_sheet.borrow_lend_id == 0: #貸
+        Expence.objects.filter(table_id=balance_sheet_id, table_type_id=2).delete()
+    else:  #借
+        Deposit.objects.filter(table_id=balance_sheet_id, table_type_id=2).delete()
+    
+    #日次入出金データも減算(削除はしない)
+    global table_type_id
+    table_type_id = settings.TABLE_TYPE_BALANCE_SHEET
+    
+    global income_expence_flag
+    income_expence_flag = settings.FLAG_BP_EXPENCE
+    if balance_sheet.borrow_lend_id == 1:
+        income_expence_flag = settings.FLAG_BP_INCOME
+        
+    Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, balance_sheet.accrual_date, balance_sheet.amount, income_expence_flag)
+    #
+    
     return redirect('account:balance_sheet_list')
     
 

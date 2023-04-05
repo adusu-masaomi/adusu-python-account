@@ -195,7 +195,7 @@ class PaymentForm(forms.ModelForm):
         model = Payment
         fields = ('billing_year_month', 'partner', 'trade_division_id','account_title', 
            'payment_method_id', 'source_bank', 'source_bank_branch', 'billing_amount', 'rough_estimate', 'payment_amount', 'commission', 
-           'payment_due_date','payment_date','unpaid_amount','unpaid_date', 'completed_flag', 'note')
+           'payment_due_date','payment_date','unpaid_amount','unpaid_date', 'unpaid_due_date', 'completed_flag', 'note')
     
     def __init__(self, *args, **kwargs):
         super(PaymentForm, self).__init__(*args, **kwargs) # Call to ModelForm constructor
@@ -275,25 +275,30 @@ class PaymentForm(forms.ModelForm):
         self.fields['payment_date'].widget.attrs['style'] = 'width:120px; height:40px;'
         self.fields['payment_date'].widget.attrs['tabindex'] =  12
         
-        #add200507
         #未払金額
         self.fields['unpaid_amount'].widget.attrs['id'] = 'unpaid_amount'
         #self.fields['unpayment_amount'].widget.attrs['onchange'] = "setAmount();"
         self.fields['unpaid_amount'].widget.attrs['tabindex'] = 13
         
+        #addd230313
+        #未払支払予定日(datepicker)
+        self.fields['unpaid_due_date'].widget = forms.DateInput(attrs={'class':'datepicker_3', 'id': 'unpaid_due_date_picker'})
+        self.fields['unpaid_due_date'].widget.attrs['style'] = 'width:120px; height:40px;'
+        self.fields['unpaid_due_date'].widget.attrs['tabindex'] =  14
+        
         #未払支払日(datepicker)
         self.fields['unpaid_date'].widget = forms.DateInput(attrs={'class':'datepicker_3', 'id': 'unpaid_date_picker'})
         self.fields['unpaid_date'].widget.attrs['style'] = 'width:120px; height:40px;'
-        self.fields['unpaid_date'].widget.attrs['tabindex'] =  14
+        self.fields['unpaid_date'].widget.attrs['tabindex'] =  15
         
         #完了フラグ
         #self.fields['completed_flag'].widget = forms.CheckboxInput(attrs={'class': 'check'})
         self.fields['completed_flag'].widget.attrs['style'] = 'width:140px; height:40px;'
         self.fields['completed_flag'].widget.attrs['id'] = 'completed_flag_id_select'
-        self.fields['completed_flag'].widget.attrs['tabindex'] =  15
+        self.fields['completed_flag'].widget.attrs['tabindex'] =  16
         
         #備考
-        self.fields['note'].widget.attrs['tabindex'] = 16
+        self.fields['note'].widget.attrs['tabindex'] = 17
         
         #upd180418 フォーム揃える
         self.helper = FormHelper()
@@ -316,6 +321,7 @@ class PaymentForm(forms.ModelForm):
                  Div('payment_due_date'),
                  Div('payment_date'),
                  Div('unpaid_amount'),
+                 Div('unpaid_due_date'),
                  Div('unpaid_date'),
                  Div('completed_flag'),
                  Div('note'),
@@ -455,7 +461,8 @@ class Cash_BookForm(forms.ModelForm):
     
     class Meta:
         model = Cash_Book
-        fields = ('settlement_date', 'receipt_date', 'description_partner', 'description_content', 'account_title', 'staff', 
+        fields = ('settlement_date', 'receipt_date', 'partner', 'description_partner', 
+                  'description_content', 'account_title', 'staff', 
                   'purchase_order_code', 'reduced_tax_flag', 'incomes', 'expences', )
         
     def __init__(self, *args, **kwargs):
@@ -471,51 +478,88 @@ class Cash_BookForm(forms.ModelForm):
         self.fields['receipt_date'].widget = forms.DateInput(attrs={'class':'datepicker', 'id': 'receipt_date'})
         self.fields['receipt_date'].widget.attrs['style'] = 'width:100px; height:35px;'
         
+        #add230331
+        #取引先
+        self.fields['partner'].widget.attrs['id'] = 'partner'
+        self.fields['partner'].widget.attrs['style'] = 'width:200px; height:35px;'
+        self.fields['partner'].widget.attrs['tabindex'] = 2
+        
         #適用（取引先）
         self.fields['description_partner'].widget.attrs['id'] = 'description_partner'
         self.fields['description_partner'].widget.attrs['style'] = 'width:430px; height:35px;'
-        self.fields['description_partner'].widget.attrs['tabindex'] = 2
+        #self.fields['description_partner'].widget.attrs['tabindex'] = 2
+        self.fields['description_partner'].widget.attrs['tabindex'] = 3
         
         #適用（取引内容）
         self.fields['description_content'].widget.attrs['id'] = 'description_content'
         self.fields['description_content'].widget.attrs['style'] = 'width:430px; height:35px;'
         self.fields['description_content'].widget.attrs['onchange'] = "predictAccountTitle();"
-        self.fields['description_content'].widget.attrs['tabindex'] = 3
+        #self.fields['description_content'].widget.attrs['tabindex'] = 3
+        self.fields['description_content'].widget.attrs['tabindex'] = 4
         
         #勘定科目
         self.fields['account_title'].widget.attrs['id'] = 'account_title'
         self.fields['account_title'].widget.attrs['style'] = 'width:430px; height:35px;'
-        self.fields['account_title'].widget.attrs['tabindex'] = 4
+        #self.fields['account_title'].widget.attrs['tabindex'] = 4
+        self.fields['account_title'].widget.attrs['tabindex'] = 5
         
         #社員
         self.fields['staff'].widget.attrs['style'] = 'width:150px; height:40px;'
-        self.fields['staff'].widget.attrs['tabindex'] = 5
+        #self.fields['staff'].widget.attrs['tabindex'] = 5
+        self.fields['staff'].widget.attrs['tabindex'] = 6
         self.fields['staff'].widget.attrs['id'] = 'staff'
         
         #注文コード
         self.fields['purchase_order_code'].widget.attrs['style'] = 'width:150px; height:40px;'
-        self.fields['purchase_order_code'].widget.attrs['tabindex'] = 6
+        #self.fields['purchase_order_code'].widget.attrs['tabindex'] = 6
+        self.fields['purchase_order_code'].widget.attrs['tabindex'] = 7
         self.fields['purchase_order_code'].widget.attrs['id'] = 'purchase_order_code'
         
         #add190824
         #軽減税率
         self.fields['reduced_tax_flag'].widget.attrs['style'] = 'width:150px; height:40px;'
-        self.fields['reduced_tax_flag'].widget.attrs['tabindex'] = 7
+        #self.fields['reduced_tax_flag'].widget.attrs['tabindex'] = 7
+        self.fields['reduced_tax_flag'].widget.attrs['tabindex'] = 8
         self.fields['reduced_tax_flag'].widget.attrs['id'] = 'reduced_tax_flag'
         
         #収入金額
         self.fields['incomes'].widget.attrs['id'] = 'incomes'
         self.fields['incomes'].widget.attrs['style'] = 'width:120px; height:35px;'
-        self.fields['incomes'].widget.attrs['tabindex'] = 8
+        #self.fields['incomes'].widget.attrs['tabindex'] = 8
+        self.fields['incomes'].widget.attrs['tabindex'] = 9
         
         #支払金額
         self.fields['expences'].widget.attrs['id'] = 'expences'
         self.fields['expences'].widget.attrs['style'] = 'width:120px; height:35px;'
-        self.fields['expences'].widget.attrs['tabindex'] = 9
+        #self.fields['expences'].widget.attrs['tabindex'] = 9
+        self.fields['expences'].widget.attrs['tabindex'] = 10
         
-        #expences = forms.IntegerField(widget=forms.TextInput(attrs={'onclick':'commas(self)'}))
-        #self.fields['expences'].widget.attrs['onclick'] = "commas(this)"
-        #self.fields['expences'].widget.attrs['oninput'] = "thousand_sep(this.id, this.value)"
+        #フォーム揃える   add230331
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_action = 'submit_survey'
+        
+        self.helper.layout = Layout(
+            Div(
+                 Div('settlement_date'),
+                 Div('receipt_date', css_class='col-md-3', style='margin-left:-15px;'),
+                 Div('partner'),
+                 Div('description_partner'),
+                 Div('description_content'),
+                 Div('account_title'),
+                 Div('staff'),
+                 Div('purchase_order_code'),
+                 Div('reduced_tax_flag'),
+                 Div('incomes'),
+                 Div('expences'),
+                 ButtonHolder(
+                   Submit('submit', '登録', css_class='button white')
+                 ),
+                  css_class='row col-xs-9',
+                 
+                ),
+            
+        )
 
 class Cash_Book_WeeklyForm(forms.ModelForm):
     """現金出納帳週末データのフォーム"""
@@ -629,7 +673,7 @@ class Balance_SheetForm(forms.ModelForm):
         
         #発生日(datepicker)
         self.fields['accrual_date'].widget.attrs['tabindex'] = 0
-        self.fields['accrual_date'].widget = forms.DateInput(attrs={'class':'datepicker_1', 'id': 'accrual_date_picker'})
+        self.fields['accrual_date'].widget = forms.DateInput(attrs={'class':'datepicker', 'id': 'accrual_date_picker'})
         self.fields['accrual_date'].widget.attrs['style'] = 'width:100px; height:40px;'
         
         #貸借区分

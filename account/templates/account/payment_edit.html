@@ -246,7 +246,7 @@
       {
         //完了にする
         if (!(document.getElementById("unpaid_amount").value > 0))
-        {
+        { 
           $("#completed_flag_id_select").val(1).trigger('change');
         }
       }else{
@@ -280,6 +280,36 @@
       }else{
         //未払にする
         $("#completed_flag_id_select").val(0).trigger('change');
+      }
+    })
+    
+    //未払支払予定日のdatepicker
+    $('#unpaid_due_date_picker').datepicker({
+      dateFormat: dateFormatNormal,
+      //カレンダーを開いた時、入力値の状態にさせる処理
+      beforeShow: function (dateText, inst) { 
+        dateText = document.getElementById("unpaid_due_date_picker").value;
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
+      },
+      // You can put more options here.
+    });
+    
+    //未払支払予定日(変更時)
+    $('#unpaid_due_date_picker').change(function() {
+      // Get the value of date field
+      var dateValue = $('#unpaid_due_date_picker').val();
+      var unpaidDateValue = $('#unpaid_date_picker').val()
+      
+      if (dateValue != "")
+      {
+         if (unpaidDateValue == "")  //未払(完了)日が入力なし
+         {
+            //未払にする
+           $("#completed_flag_id_select").val(0).trigger('change');
+         }
       }
     })
     

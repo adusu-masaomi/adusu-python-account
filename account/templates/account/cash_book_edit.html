@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load bootstrap %}
 {% load humanize %} 
+{% load crispy_forms_tags %}
 
 {% block title %}現金出納帳の編集{% endblock title %}
 
@@ -12,14 +13,16 @@
     <form action="{% url 'account:cash_book_add' %}" method="post" class="form-horizontal" role="form">
     {% endif %}
       {% csrf_token %}
-      {{ form|bootstrap_horizontal }}
+    <!--{{ form|bootstrap_horizontal }}-->
+    {% crispy form %}
       <div class="form-group">
-        <div class="col-sm-offset-2 col-sm-10">
-          <button type="submit" class="btn btn-primary">登録</button>
+        <div class="col-sm-offset-2 col-sm-10" style="margin-left:-10px">
+        <!--<button type="submit" class="btn btn-primary">登録</button>-->
+        <a href="{% url 'account:cash_book_list' %}" class="btn btn-default btn-sm">戻る</a>
         </div>
       </div>
     </form>
-    <a href="{% url 'account:cash_book_list' %}" class="btn btn-default">戻る</a>
+  <!--<a href="{% url 'account:cash_book_list' %}" class="btn btn-default">戻る</a>-->
 
 <script type="text/javascript" >
   
@@ -31,23 +34,39 @@
     
     //select2の設定
     
+    //取引先
+    $("#partner").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+    //select2をenterキー押下した場合(リストが閉じられた時)のタブ移動。
+    $( "#partner" ).on("select2:close", function (e) {
+      $('[tabindex=3]').focus(); 
+    });
+    
+    //取引先変更したら適用の取引先も変更する
+    $( "#partner" ).change(function(e) {
+        var data  = $("#partner").select2('data');
+        document.getElementById("description_partner").value = data[0].text;
+    });
+    
     //支払科目
     $("#account_title").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
     //select2をenterキー押下した場合(リストが閉じられた時)のタブ移動。
     $( "#account_title" ).on("select2:close", function (e) {
-      $('[tabindex=5]').focus(); 
+      //$('[tabindex=5]').focus();
+      $('[tabindex=6]').focus(); 
     });
     //社員
     $("#staff").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
     //select2をenterキー押下した場合(リストが閉じられた時)のタブ移動。
     $( "#staff" ).on("select2:close", function (e) {
-      $('[tabindex=6]').focus(); 
+      //$('[tabindex=6]').focus();
+      $('[tabindex=7]').focus(); 
     });
     
     //注文コード
     $("#purchase_order_code").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
     $( "#purchase_order_code" ).on("select2:close", function (e) {
-      $('[tabindex=7]').focus(); 
+      //$('[tabindex=7]').focus(); 
+      $('[tabindex=8]').focus(); 
     });
     
     //datepickerの設定

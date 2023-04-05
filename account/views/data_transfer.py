@@ -11,6 +11,7 @@ from account.models import Bank_Branch
 from account.models import Payment
 from account.models import Payment_Reserve
 from account.models import DailyCashFlow
+from account.models import Expence
 #
 
 from account.views import set_cash_flow_detail as Set_Cash_Flow_Detail  #add200121
@@ -62,6 +63,15 @@ def automake_payment(request):
         dtm = datetime.strptime(temp_date, '%Y-%m-%d')
         assigned_date = dtm.date() 
     
+        #add230208
+        #既に支払データが作成されていた場合は、日次入出金データから減算する
+        minus_daily_cash_flow(assigned_date)
+        
+        #add230217
+        #出金データも削除する
+        Expence.objects.filter(billing_year_month=assigned_date).delete()
+        
+        
         #まず指定月のものを一括で削除する
         Payment.objects.filter(billing_year_month=assigned_date).delete()
         
@@ -143,6 +153,7 @@ def automake_payment(request):
                     #支店もセット
                     if partner.source_bank_branch:
                         payment.source_bank_branch = partner.source_bank_branch
+                
                 #固定費
                 if partner.fixed_content_id is CONTENT_ASSIGNED_MONTH_WITH_AMOUNT:  
                     #固定フラグ（指定月-固定費）
@@ -233,13 +244,36 @@ def automake_payment(request):
                 #入出金管理データの更新
                 billing_amount = payment.billing_amount
                 
-                #set_daily_cash_flow(pay_date, billing_amount)
-                Set_Daily_Cash_flow.set_daily_cash_flow(pay_date, billing_amount)
+                #if partner.id == 77:
+                #    import pdb; pdb.set_trace()
+                
+                #add230213
+                #一旦保留
+                #請求金額がない場合、概算金額をセットする
+                is_estimate = 0
+                
+                if billing_amount is None or billing_amount == 0:
+                    if payment.rough_estimate is not None:
+                        billing_amount = payment.rough_estimate
+                        is_estimate = 1
+                
+                
+                #日次入出金データへ保存
+                income_expence_flag = 1
+                #Set_Daily_Cash_flow.set_daily_cash_flow(pay_date, billing_amount)
+                Set_Daily_Cash_flow.set_daily_cash_flow(pay_date, billing_amount, income_expence_flag)
                 
                 #cash_book_pre_weekly = Cash_Book_Weekly.objects.filter(computation_date=dtm_pre_week.date()).first()
                 #
                 
                 payment.save()
+                
+                #if pay_date == date(2023, 2, 28):
+                #    import pdb; pdb.set_trace()
+                                
+                #日次出金データへも保存(上の行でID作成されていることが前提)
+                #Set_Daily_Cash_flow.set_expence(payment, pay_date, billing_amount, is_estimate)
+                Set_Daily_Cash_flow.set_payment_to_expence(payment, pay_date, billing_amount, is_estimate)
                 
                 #add200121
                 #資金繰明細データも保存する
@@ -269,15 +303,25 @@ def automake_payment(request):
             payment.save()
             
             #入出金管理データの更新
-            billing_amount = payment.billing_amount
-            pay_date = payment.payment_due_date
-            Set_Daily_Cash_flow.set_daily_cash_flow(pay_date, billing_amount)
+            billing_amount = payment_reserve.billing_amount
+            pay_date = payment_reserve.payment_due_date
+            #Set_Daily_Cash_flow.set_daily_cash_flow(pay_date, billing_amount)
+            income_expence_flag = 1
+            Set_Daily_Cash_flow.set_daily_cash_flow(pay_date, billing_amount, income_expence_flag)
             #
+            
+            #import pdb; pdb.set_trace()
+            
+            #日次出金データへも保存
+            #Set_Daily_Cash_flow.set_expence(payment_reserve, pay_date, billing_amount)
+            Set_Daily_Cash_flow.set_payment_to_expence(payment_reserve, pay_date, billing_amount)
             
             #add200121
             #資金繰明細データも保存する
             Set_Cash_Flow_Detail.set_cash_flow_detail(payment.id)
             
+            #ここで本体セーブする
+            #payment.save()
           except Payment.DoesNotExist:
             #一括コピーできる方法があればよいが..
             payment.billing_year_month = payment_reserve.billing_year_month
@@ -291,13 +335,56 @@ def automake_payment(request):
             payment.payment_due_date = payment_reserve.payment_due_date
             #
             payment.save()
-             
+            
+            #入出金管理データの更新
+            billing_amount = payment_reserve.billing_amount
+            pay_date = payment_reserve.payment_due_date
+            
+            #add230213
+            #一旦保留
+            #請求金額がない場合、概算金額をセットする
+            is_estimate = 0
+                
+            if billing_amount is None or billing_amount == 0:
+                if payment_reserve.rough_estimate is not None:
+                    billing_amount = payment_reserve.rough_estimate
+                    is_estimate = 1
+            #if billing_amount is None or billing_amount == 0:
+            #    billing_amount = payment_reserve.rough_estimate
+            #
+            income_expence_flag = 1
+            #Set_Daily_Cash_flow.set_daily_cash_flow(pay_date, billing_amount)
+            Set_Daily_Cash_flow.set_daily_cash_flow(pay_date, billing_amount, income_expence_flag)
+            #
+            #日次出金データへも保存(paymentのデータを保存)
+            #Set_Daily_Cash_flow.set_expence(payment, pay_date, billing_amount, is_estimate)
+            Set_Daily_Cash_flow.set_payment_to_expence(payment, pay_date, billing_amount, is_estimate)
+ 
             #add200121
             #資金繰明細データも保存する
             Set_Cash_Flow_Detail.set_cash_flow_detail(payment.id)
     
     return redirect('account:payment_list')
 
+#既に支払データが作成されていた場合は、日次入出金データから減算する
+def minus_daily_cash_flow(assigned_date):
+    
+    payments = Payment.objects.filter(billing_year_month=assigned_date)
+    
+    if payments is not None:
+        for payment in payments:
+            if payment.billing_amount is not None and \
+               payment.billing_amount > 0:
+               
+               if payment.payment_due_date is not None:
+                   payment_due_date = payment.payment_due_date
+                   
+                   daily_cash_flow = DailyCashFlow.objects.filter(cash_flow_date=payment_due_date).first()
+                   
+                   if daily_cash_flow is not None:
+                       if daily_cash_flow.expence is not None:
+                           daily_cash_flow.expence -= payment.billing_amount
+                           daily_cash_flow.save()
 #add230128
 #日次入出金ファイルへ加算
 #def set_daily_cash_flow(pay_date, billing_amount):

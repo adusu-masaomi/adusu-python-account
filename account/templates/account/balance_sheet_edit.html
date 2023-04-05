@@ -197,6 +197,13 @@
       //カレンダーを開いた時、入力値の状態にさせる処理
       beforeShow: function (dateText, inst) { 
         
+        //debugger;
+
+        dateText = document.getElementById("accrual_date_picker").value;
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
        //debugger;
         
         //dateText = document.getElementById("accrual_date_picker").value;
