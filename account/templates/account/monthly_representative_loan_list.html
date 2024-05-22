@@ -1,0 +1,156 @@
+<!--ノーマルな編集用一覧フォーム-->
+
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}月次貸付金の一覧{% endblock title %}
+
+{% block extrahead %}
+<style>
+table {
+  margin-top: 8px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+    <h3 class="page-header">月次貸付金の一覧</h3>
+    
+    <form type="get" action="" style="margin: 0">
+      <label for="searchbox">発生年月(開始):</label>
+      <input class="searchfield" id="search_date_from" name="q_date_from" type="text" value="{{search_query_date_from}}" placeholder="未選択..." style="width: 100px;"/>
+        
+      <button type="button" class="btn btn-grey400_rsd btn-xs" onclick="clearDateFrom()" >×</button>
+        
+      <label for="searchbox">発生年月(終了):</label>
+      <input class="searchfield" id="search_date_to" name="q_date_to" type="text" value="{{search_query_date_to}}" placeholder="未選択..." style="width: 100px;" />
+        
+      <button type="button" class="btn btn-grey400_rsd btn-xs" onclick="clearDateTo()" >×</button>
+    
+      </br><button id="search_submit" type="submit" class="btn btn-grey200_rsd keep-disp" style="padding-top:2px;width: 50px; height: 20px;">検索</button>
+    </form>
+    </br>
+
+    <!-- 新規ボタン -->
+    <a href="{% url 'account:monthly_representative_loan_add' %}" class="btn btn-primary keep-disp">新規作成</a>
+    </br></br>
+
+    <table class="table table-striped table-bordered">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>発生年月</th>
+          <th>前月残</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for monthly_representative_loan in monthly_representative_loans %}
+        <tr>
+          <td>{{ monthly_representative_loan.id }}</td>
+          <td>{{ monthly_representative_loan.occurred_year_month|date:"Y/m" }}</td>
+          {% if monthly_representative_loan.last_month_balance != null %}
+            <td align="right">￥{{ monthly_representative_loan.last_month_balance| intcomma:False }}</td>
+          {% else %}
+            <td align="right">{{ monthly_representative_loan.last_month_balance| default_if_none:EMPTY_MARK }}</td>
+          {% endif %}
+          <td>
+            <!--編集・削除・・・ひとまずカット-->
+            <a href="{% url 'account:monthly_representative_loan_mod' monthly_representative_loan_id=monthly_representative_loan.id %}" class="btn btn-default btn-sm">編集</a>
+            
+            <button class="btn btn-danger btn-sm del_confirm" data-toggle="modal" data-target="#deleteModal"
+                  pk="{{ monthly_representative_loan.id }}" url="{% url 'account:monthly_representative_loan_del' monthly_representative_loan_id=monthly_representative_loan.id %}">削除</button>
+            
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+	{# 削除を確認するモーダル ダイアログ #}
+  <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+          <h4 class="modal-title" id="deleteModalLabel">確認</h4>
+        </div>
+        <div class="modal-body">
+          <p>ID: <span id="del_pk"></span> を削除しますか？</p>
+        </div>
+        <div class="modal-footer">
+          <a href="#" class="btn btn-primary" id="del_url">OK</a>
+          <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+<script>
+  
+  $(document).on('ready page:load', function(){
+    $.datepicker.setDefaults( $.datepicker.regional[ "ja" ] );
+    
+    //開始月(支払)
+    $('#search_date_from').datepicker({
+      dateFormat: "yy-mm",
+      //dateFormat: "yy-mm-dd",
+      //カレンダーを開いた時、入力値の状態にさせる処理
+      beforeShow: function (dateText, inst) { 
+        dateText = document.getElementById("search_date_from").value;
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
+      },
+      onSelect: function(dateText) {
+        //終了月へ開始月をコピー(未入力の場合または開始月が終了月より大きい場合)
+        if (document.getElementById("search_date_to").value == "" || 
+            document.getElementById("search_date_from").value > document.getElementById("search_date_to").value){
+           document.getElementById("search_date_to").value = 
+            document.getElementById("search_date_from").value;
+        }
+        
+        //請求開始終了日をクリア
+        //clearBillingDateFromTo();
+      },
+    });
+    //開始月(支払)
+    $('#search_date_to').datepicker({
+      dateFormat: "yy-mm",
+      //dateFormat: "yy-mm-dd",
+      //カレンダーを開いた時、入力値の状態にさせる処理
+      beforeShow: function (dateText, inst) { 
+        dateText = document.getElementById("search_date_to").value;
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
+      },
+      onSelect: function(dateText) {
+        //終了月へ開始月をコピー(未入力の場合または開始月が終了月より大きい場合)
+        //if (document.getElementById("search_pay_month_to").value == "" || 
+        //    document.getElementById("search_pay_month_from").value > document.getElementById("search_pay_month_to").value){
+        //   document.getElementById("search_pay_month_to").value = 
+        //    document.getElementById("search_pay_month_from").value;
+        //}
+        
+        //請求開始終了日をクリア
+        //clearBillingDateFromTo();
+      },
+    });
+  });
+  
+  function clearDateFrom(){
+     document.getElementById("search_date_from").value = "";
+  }
+  function clearDateTo(){
+     document.getElementById("search_date_to").value = "";
+  }
+  
+  $(function() {
+    $('.del_confirm').on('click', function () {
+       $("#del_pk").text($(this).attr("pk"));
+       $('#del_url').attr('href', $(this).attr("url"));
+    });
+  });
+</script>
+
+{% endblock content %}

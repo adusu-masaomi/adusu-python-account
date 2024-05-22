@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% load debug_tags %}
+{% load sorting_tags %}
+
+<!--デバッグしたい箇所で下記をセットする-->
+<!--{% set_trace %}-->
+
+{% block extrahead %}
+<style>
+table {
+  margin-top: 8px;
+}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+    <h3 class="page-header">資金繰(実際)の一覧</h3>
+    
+    {% if messages %}
+      <ul class="messages">
+        {% for message in messages %}
+          <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    
+    
+    <form type="get" action="" style="margin: 0">
+    
+        <label for="searchbox">日付(開始):</label>
+        <input class="searchfield" id="search_actual_date_from" name="q_actual_date_from" type="text" value="{{search_actual_date_from}}" placeholder="選択してください..."/>
+        
+        <button type="button" class="btn btn-grey400_rsd btn-xs" onclick="clearReceiptDateFrom()" >×</button>
+        
+        <label for="searchbox">日付(終了):</label>
+        <input class="searchfield" id="search_actual_date_to" name="q_actual_date_to" type="text" value="{{search_actual_date_to}}" placeholder="選択してください..."/>
+        
+        <button type="button" class="btn btn-grey400_rsd btn-xs" onclick="clearReceiptDateTo()" >×</button>
+        
+        
+        {% comment ’以下は未使用なのでコメント--復活する場合もあるので取っておく’ %}
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <!--変更時はモデル側も要変更-->
+        <label for="id_borrow_lend">貸借区分:</label>
+        <select  class="django-select2" id="id_borrow_lend" style="width:50px;"  name="q_borrow_lend_id" value="{{ search_q_borrow_lend_id }}" data-minimum-input-length="0">
+          <!--<option value="">-- どれか一つを選んで下さい。 --</option>-->
+          <option value=""></option>
+          <option value="0" {% if search_query_borrow_lend_id == "0" %} selected {% endif %}>貸</option>
+          <option value="1" {% if search_query_borrow_lend_id == "1" %} selected {% endif %}>借</option>
+        </select>
+        {% endcomment %}
+        
+        </br>
+        
+        <button id="search_submit" type="submit" class="btn btn-grey200_rsd keep-disp" >検索</button>
+        <!--&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-->
+        
+        <a href="{% url 'account:cash_flow_header_list'%}" class="btn btn-warning keep-disp">集計画面に戻る</a>    
+    </form>
+    
+    {% comment %}
+      <a href="{% url 'account:balance_sheet_add' %}" class="btn btn-primary keep-disp">新規作成</a>
+    {% endcomment %}
+    
+    
+    
+    <!--見出し固定用設定-->
+<div style="margin-top : -0px;", class="span11 table-scrollable" >
+ 
+  <style>
+   table { }
+   table th, table td { white-space:nowrap; overflow:hidden; }
+  </style>
+  
+    {% autosort cash_flow_detail_expects %}
+    <table id="tablefix", class="table table-striped table-bordered">
+      <thead>
+        <tr>
+          <th>{% anchor id "ID" %}</th>
+          <th>日付</th>
+          <th>収支区分</th>
+          <th>科目</th>
+          <th>項目名</th>
+          <th>金額</th>
+          <th>支払方法</th>
+          <th>振込/入金先</th>
+        </tr>
+      </thead>
+      <tbody id="sortable" class="connectedSortable">
+        {% for cash_flow_detail_actual in cash_flow_detail_expects|dictsort:"actual_date" %}
+        <tr id="cash_flow_detail_actual_{{ cash_flow_detail_actual.id }}">
+          <td>{{ cash_flow_detail_actual.id }}</td>
+          <td>{{ cash_flow_detail_actual.actual_date|date:"Y/m/d" }}</td>
+          
+          {% if cash_flow_detail_actual.actual_expense > 0 %}
+            <td>支出</td>
+          {% elif cash_flow_detail_actual.actual_income > 0 %}
+            <!--<font color = "#DF01D7" >-->
+            <td><b>収入</b></td>
+          {% else %}
+            <td></td>
+          {% endif %}
+          
+          {# 科目 #}
+          {% if cash_flow_detail_actual.construction_id != null %}
+            <td>工事</td>
+          {% elif cash_flow_detail_actual.invoice_header != null %}	
+            <td>請求</td>
+          {% elif cash_flow_detail_actual.account_title_id != null %}
+            <td>{{ cash_flow_detail_actual.account_title|default_if_none:EMPTY_MARK }}</td>
+          {% else %}
+            <td>-</td>
+          {% endif %}
+          
+          {# 項目名 #}
+          {% if cash_flow_detail_actual.partner != null %}	
+            {# 支払先名のある場合 #}
+            <td>{{ cash_flow_detail_actual.partner }}</td>
+          {% elif cash_flow_detail_actual.cash_id == 1 %}	
+            {# 現金の場合、摘要を表示 #}
+            <td>{{ cash_flow_detail_actual.cash_book }}</td>
+          {% elif cash_flow_detail_actual.invoice_header != null %}	
+            {# 請求書のある場合 #}
+            <td>{{ cash_flow_detail_actual.invoice_header }}</td>
+          {% else %}
+            <td></td>
+          {% endif %} 
+          
+          {# 金額 #}
+          {% if cash_flow_detail_actual.actual_expense != 0 %}
+            <td align="right">￥{{ cash_flow_detail_actual.actual_expense| intcomma:False }}</td>
+          {% elif cash_flow_detail_actual.actual_income != 0 %}
+            <td align="right">￥{{ cash_flow_detail_actual.actual_income| intcomma:False }}</td>
+          {% else %}
+            <td align="right">-</td>
+          {% endif %}
+          
+          {# 支払方法 #}
+          {% if cash_flow_detail_actual.cash_id != null and cash_flow_detail_actual.cash_id == 1 %}
+            <td><font color = "#DF7401" >現金</font></td>
+          {% elif cash_flow_detail_actual.actual_income > 0 %}
+            <td><font color = "#DF01D7" >入金</font></td>
+          {% elif cash_flow_detail_actual.payment_method_verbose != null %}	
+            <td>{{ cash_flow_detail_actual.payment_method_verbose }}</td>
+          {% else %}
+            <td></td>
+          {% endif %}
+          
+          {# 振込/入金先 #}
+          {% if cash_flow_detail_actual.payment_bank_id != null %}	
+            <td>{{ cash_flow_detail_actual.payment_bank_verbose }}</td>
+          {% else %}
+            <td>-</td>
+          {% endif %}
+          
+          
+          <td>
+            <button class="btn btn-pink50_rsd btn-sm del_confirm keep-disp" data-toggle="modal" data-target="#deleteModal"
+                  pk="{{ cash_flow_detail_actual.id }}" url="{% url 'account:cash_flow_detail_actual_del' cash_flow_detail_actual_id=cash_flow_detail_actual.id cash_flow_detail_actual_id=cash_flow_detail_actual.id %}">削除</button>
+            
+            
+          </td>
+        </tr>
+        {% endfor %}
+        
+        <!--縦の合計表示-->
+        <td></td>
+        <td></td>
+        <td style="text-align:center;"><font color='#B40404'>合計</font></td>
+                
+        <td></td>
+        <td></td>
+        <!--合計-貸-->
+        {% if sum_amount != null %}
+          <td align="right"><font color='#B40404'>￥{{ sum_amount| intcomma:False }}</font></td>
+        {% else %}
+          <!--０なら非表示-->
+          <td align="right"></td>
+        {% endif %}
+                    
+        <td></td>
+        <td></td>
+        <td></td>
+          
+      </tbody>
+    </table>
+    
+    {% comment "未処理" %}
+    <!--新規ボタンを下端にも表示する-->
+    <a href="{% url 'account:cash_flow_detail_actual_add' %}" class="btn btn-primary keep-disp">新規作成</a>
+    {% endcomment %}
+</div>
+	{# 削除を確認するモーダル ダイアログ #}
+  <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+          <h4 class="modal-title" id="deleteModalLabel">確認</h4>
+        </div>
+        <div class="modal-body">
+          <p>ID: <span id="del_pk"></span> を削除しますか？</p>
+        </div>
+        <div class="modal-footer">
+          <a href="#" class="btn btn-primary" id="del_url">OK</a>
+          <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+<script>
+  
+  $(document).on('ready page:load', function(){
+    
+    //select2
+    //$("#id_account_title").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+    //$("#id_staff").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+    //$("#id_not_staff").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+    
+    //画面位置保持用
+    $('form').keepPosition();
+    
+    //見出し固定用設定
+	 var sz = window.parent.screen.width;
+	 var fc = 1;    //デフォルトの固定列数(社長PC基準)
+	 var ht = 610;  //デフォルトの高さ(社長PC基準)
+	 
+	 if (sz != 1920) {
+	 //画面サイズ1920px(社長PC基準)以外は、列固定させる。
+        //fc = 1;  //固定列数
+        fc = 0;  //固定列数  (1 to 0)
+		ht -= 70;
+		sz -= 0;
+	}
+    $('#tablefix').tablefix({width: sz, height: ht, fixRows: 1, fixCols: fc});
+    //
+    
+    //ソート用
+    //$("#sortable").sortable({
+    $("#tablefix tbody").sortable({
+       connectWith: ".connectedSortable",
+       update: function(event, ui) {
+         //var serial = $('#sortable').sortable('serialize');
+         var serial = $(this).sortable('serialize');
+         
+        
+       },
+    }).disableSelection();
+       
+    
+    //dateFormat: "yy-mm",
+      
+    $.datepicker.setDefaults( $.datepicker.regional[ "ja" ] );
+         
+    //開始月(発生日)
+    $('#search_actual_date_from').datepicker({
+      dateFormat: "yy-mm-dd",
+      //カレンダーを開いた時、入力値の状態にさせる処理
+      beforeShow: function (dateText, inst) { 
+        dateText = document.getElementById("search_actual_date_from").value;
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
+      },
+      onSelect: function(dateText) {
+        //請求日をクリア
+        //clearSettlementDate();
+      },
+    });
+    //終了月(発生日)
+    $('#search_actual_date_to').datepicker({
+      dateFormat: "yy-mm-dd",
+      //dateFormat: "yy-mm-dd(D)",
+      //カレンダーを開いた時、入力値の状態にさせる処理
+      beforeShow: function (dateText, inst) { 
+        dateText = document.getElementById("search_actual_date_to").value;
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
+      },
+    });
+   
+  });
+  
+  //領収日（開始）をクリアする
+  function clearReceiptDateFrom(){
+   document.getElementById("search_actual_date_from").value = "";
+  }
+  //領収日（終了）をクリアする
+  function clearReceiptDateTo(){
+   document.getElementById("search_actual_date_to").value = "";
+  }
+  //領収日（開始.終了）をクリアする
+  function clearReceiptDate(){
+    document.getElementById("search_actual_date_from").value = "";
+    document.getElementById("search_actual_date_to").value = "";
+  }
+  
+  $('form').on('submit', function(e){
+     //e.preventDefault();
+     //曜日が入っているので通常フォーマットに変換する
+     if (document.getElementById("search_settlement_date_from").value.indexOf('(') > 0){
+     //曜日が入っている場合だけフォーマットする（そうしないと消えてしまう）
+     //  document.getElementById("search_settlement_date_from").value = 
+     //        $("#search_settlement_date_from").datepicker("option", "dateFormat", "yy-mm-dd" ).val();
+     }
+     if (document.getElementById("search_settlement_date_to").value.indexOf('(') > 0){
+     //曜日が入っている場合だけフォーマットする（そうしないと消えてしまう）
+     //   document.getElementById("search_settlement_date_to").value =
+     //        $("#search_settlement_date_to").datepicker("option", "dateFormat", "yy-mm-dd" ).val();
+     }
+  });
+  
+  //画面位置保持用
+  $.fn.keepPosition = function(){
+    //cookieに保存する名前（他のページと競合しないようURLを含めるようにする）
+    var key = 'keep-position-'+location.pathname;
+    //var win = $(window);
+    
+    this.each(function(){
+        
+        $(document).on('click', '.keep-disp', function(){
+        
+            if (typeof bodyDiv != 'undefined'){  //←これがないとエラーが出るケース有
+              div_top = bodyDiv.scrollTop();
+              $.cookie(key, div_top);
+            }
+        });
+    });
+    
+    setTimeout(function(){
+		if (typeof bodyDiv != 'undefined'){  //←これがないとエラーが出るケース有
+            bodyDiv.scrollTop($.cookie(key));
+        }
+    },0);
+  }
+   
+  
+  
+  $(function() {
+    $('.del_confirm').on('click', function () {
+       $("#del_pk").text($(this).attr("pk"));
+       $('#del_url').attr('href', $(this).attr("url"));
+    });
+  });
+</script>
+
+{% endblock content %}

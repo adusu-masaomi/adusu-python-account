@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}勘定科目の一覧{% endblock title %}
+
+{% block extrahead %}
+<style>
+table {
+  margin-top: 8px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+    <h3 class="page-header">勘定科目(貸借用)の一覧</h3>
+    
+    <!--エラーメッセージ表示-->
+    {% if messages %}
+        <ul class="messages">
+        {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+
+    <a href="{% url 'account:account_add' %}" class="btn btn-primary ">新規作成</a>
+    
+<!--見出し固定用設定追加→フレシキブル画面が損なわれるので保留中-->
+<!--<div style="margin-top : -0px;", class="span11 table-scrollable" >-->
+ 
+  <!--<style>
+   table { }
+   table th, table td { white-space:nowrap; overflow:hidden; }
+  </style>-->
+  
+    <table id="tablefix",  class="table table-striped table-bordered">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>順</th>
+          <th>勘定科目名</th>
+        </tr>
+      </thead>
+      <tbody id="sortable" class="connectedSortable">
+        {% for account in accounts|dictsort:"order" %}
+        <tr id="account_{{ account.id }}">
+          <td>{{ account.id }}</td>
+          <td>{{ account.order }}</td>
+          <td>{{ account.name }}</td>
+          <td>
+            <a href="{% url 'account:account_mod' account_id=account.id %}" class="btn btn-default btn-sm">編集</a>
+            <button class="btn btn-danger btn-sm del_confirm" data-toggle="modal" data-target="#deleteModal"
+                  pk="{{ account.id }}" url="{% url 'account:account_del' account_id=account.id account_id=account.id %}">削除</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+</div>
+	{# 削除を確認するモーダル ダイアログ #}
+  <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+          <h4 class="modal-title" id="deleteModalLabel">確認</h4>
+        </div>
+        <div class="modal-body">
+          <p>ID: <span id="del_pk"></span> を削除しますか？</p>
+        </div>
+        <div class="modal-footer">
+          <a href="#" class="btn btn-primary" id="del_url">OK</a>
+          <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+<script>
+  
+  $(document).on('ready page:load', function(){
+     $("#id_trade").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+     
+     //ソート用
+     $("#sortable").sortable({
+       connectWith: ".connectedSortable",
+       update: function(event, ui) {
+         var serial = $('#sortable').sortable('serialize');
+         //debugger;
+         $.ajax({
+           url: "{% url 'account:account_sort' %}",
+           type: "post",
+           data: { 'content': serial, 'csrfmiddlewaretoken' : '{{ csrf_token }}' } 
+         });
+       },
+     }).disableSelection();
+     
+     //見出し固定用設定
+	 var sz = window.parent.screen.width;
+	 var fc = 1;    //デフォルトの固定列数(社長PC基準)
+	 var ht = 610;  //デフォルトの高さ(社長PC基準)
+	 
+	 if (sz != 1920) {
+	 //画面サイズ1920px(社長PC基準)以外は、列固定させる。
+        fc = 1;  //固定列数
+		ht -= 70;
+		sz -= 0;
+	 }
+     //フレシキブル画面が損なわれるので保留中・・・
+	 //$('#tablefix').tablefix({width: sz, height: ht, fixRows: 1, fixCols: fc});
+     //
+  });
+
+  
+  $(function() {
+    $('.del_confirm').on('click', function () {
+       $("#del_pk").text($(this).attr("pk"));
+       $('#del_url').attr('href', $(this).attr("url"));
+    });
+  });
+</script>
+
+{% endblock content %}

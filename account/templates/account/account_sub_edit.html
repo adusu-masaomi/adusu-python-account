@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load bootstrap %}
+
+{% block title %}勘定補助科目(貸借用)の編集{% endblock title %}
+
+{% block content %}
+    <h3 class="page-header">勘定補助科目(貸借用)の編集</h3>
+    {% if account_sub_id %}
+    <form action="{% url 'account:account_sub_mod' account_sub_id=account_sub_id %}" method="post" class="form-horizontal" role="form">
+    {% else %}
+    <form action="{% url 'account:account_sub_add' %}" method="post" class="form-horizontal" role="form">
+    {% endif %}
+      {% csrf_token %}
+      {{ form|bootstrap_horizontal }}
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-10">
+          <button type="submit" class="btn btn-primary">登録</button>
+        </div>
+      </div>
+    </form>
+    <a href="{% url 'account:account_sub_list' %}" class="btn btn-default">戻る</a>
+
+<script type="text/javascript" >
+   
+   $(document).on('ready page:load', function(){
+     $("#select1_1").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+   });
+
+</script>
+    
+{% endblock content %}

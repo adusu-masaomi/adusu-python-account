@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load bootstrap %}
+
+{% block title %}代表者貸付金の編集{% endblock title %}
+
+{% block content %}
+    <h3 class="page-header">月次貸付金の編集</h3>
+    {% if monthly_representative_loan_id %}
+    <form action="{% url 'account:monthly_representative_loan_mod' monthly_representative_loan_id=monthly_representative_loan_id %}" method="post" class="form-horizontal" role="form">
+    {% else %}
+    <form action="{% url 'account:monthly_representative_loan_add' %}" method="post" class="form-horizontal" role="form">
+    {% endif %}
+      {% csrf_token %}
+      {{ form|bootstrap_horizontal }}
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-10">
+          <button type="submit" class="btn btn-primary">登録</button>
+        </div>
+      </div>
+    </form>
+    <a href="{% url 'account:monthly_representative_loan_list' %}" class="btn btn-default">戻る</a>
+
+<script type="text/javascript" >
+   
+   $(document).on('ready page:load', function(){
+     //$("#select1_1").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+     //$("#select1_2").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+     
+     //請求日の登録後は、１日の日付が入っているので、削り取る。
+     var strDate = $( ".datepicker_1" )[0].value;
+     if  (strDate != ""){
+       if (strDate.length == 10){
+         var strYearMonth = strDate.substr(0, 7);
+         $( ".datepicker_1" )[0].value = strYearMonth;
+       }
+     }
+     //
+     
+     //datepickerの設定
+     var dateFormatMonth = 'yy-mm';
+     var dateFormatNormal = 'yy-mm-dd';
+    
+    $.datepicker.setDefaults( $.datepicker.regional[ "ja" ] );
+    
+    //請求〆日のdatepicker
+    $('#occurred_year_month_picker').datepicker({
+      dateFormat: dateFormatMonth,
+      //カレンダーを開いた時、入力値の状態にさせる処理
+      beforeShow: function (dateText, inst) { 
+        dateText = document.getElementById("occurred_year_month_picker").value;
+        if (dateText.length == 7){
+          dateText += "-01";
+        }
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
+      },
+      //
+      //保存した時、日付に１を自動セットさせる
+      onClose: function(dateText, inst) { 
+        $(this).datepicker('setDate', new Date(inst.selectedYear, inst.selectedMonth, 1));
+        //次のコントロールへフォーカスを移す
+        $('[tabindex=1]').focus(); 
+      }
+      // You can put more options here.
+    });  
+   });
+        
+</script>
+    
+{% endblock content %}

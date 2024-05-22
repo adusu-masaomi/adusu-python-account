@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load bootstrap %}
+
+{% block title %}代表者貸付金の編集{% endblock title %}
+
+{% block content %}
+    <h3 class="page-header">代表者貸付金の編集</h3>
+    {% if daily_representative_loan_id %}
+    <form action="{% url 'account:daily_representative_loan_mod' daily_representative_loan_id=daily_representative_loan_id %}" method="post" class="form-horizontal" role="form">
+    {% else %}
+    <form action="{% url 'account:daily_representative_loan_add' %}" method="post" class="form-horizontal" role="form">
+    {% endif %}
+      {% csrf_token %}
+      {{ form|bootstrap_horizontal }}
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-10">
+          <button type="submit" class="btn btn-primary">登録</button>
+        </div>
+      </div>
+    </form>
+    <a href="{% url 'account:daily_representative_loan_list' %}" class="btn btn-default">戻る</a>
+
+<script type="text/javascript" >
+   
+   $(document).on('ready page:load', function(){
+     $("#select1_1").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+     $("#select1_2").select2({  theme: "classic", allowClear: true , placeholder: '指定無し' });
+   });
+        
+</script>
+    
+{% endblock content %}
