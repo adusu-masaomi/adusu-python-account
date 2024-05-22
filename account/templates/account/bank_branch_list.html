@@ -65,6 +65,7 @@ table {
      $("#sortable").sortable({
        connectWith: ".connectedSortable",
        update: function(event, ui) {
+         //debugger;
          var serial = $('#sortable').sortable('serialize');
          $.ajax({
            url: "{% url 'account:bank_branch_sort' %}",

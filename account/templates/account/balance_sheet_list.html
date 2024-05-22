@@ -85,6 +85,8 @@ table {
           <th>銀行</th>
           <th>科目</th>
           <th>摘要</th>
+          <th>摘要２</th>
+          <th>貸付金</th>
         </tr>
       </thead>
       <tbody id="sortable" class="connectedSortable">
@@ -95,7 +97,7 @@ table {
           <!--<td>{{ balance_sheet.borrow_lend_id }}</td>-->
           
           {% if balance_sheet.borrow_lend_verbose != null %}	
-            <td>{{ balance_sheet.borrow_lend_verbose }}</td>
+            <td style="width:50px;">{{ balance_sheet.borrow_lend_verbose }}</td>
           {% else %}
             <td></td>
           {% endif %}
@@ -107,19 +109,25 @@ table {
           {% endif %}
           
           {% if balance_sheet.bank_verbose != null %}	
-            <td>{{ balance_sheet.bank_verbose }}</td>
+            <td style="width:70px;">{{ balance_sheet.bank_verbose }}</td>
           {% else %}
             {% if balance_sheet.cash_book_id != null %}	
-              <td><font color = "#DF7401" >現金</font></td>
+              <td style="width:70px;"><font color = "#DF7401" >現金</font></td>
             {% else %}
               <td></td>
             {% endif %}
           {% endif %}
           
-          <td>{{ balance_sheet.account_title|default_if_none:EMPTY_MARK }}</td>
+          <td style="width:70px;">{{ balance_sheet.account_title|default_if_none:EMPTY_MARK }}</td>
           
-          <td>{{ balance_sheet.description }}</td>
-          
+          <td style="width:100px;">{{ balance_sheet.description }}</td>
+          <td style="width:100px;">{{ balance_sheet.description2|default_if_none:'' }}</td>
+
+          {% if balance_sheet.is_representative == 1 %}
+            <td><input type="checkbox" checked="checked" disabled></td>
+          {% else %}
+            <td><input type="checkbox" disabled></td>
+          {% endif %}
           <!--<td>{{ balance_sheet.staff|default_if_none:EMPTY_MARK|truncatewords:1 }}</td>-->
           
           <td>

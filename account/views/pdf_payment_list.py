@@ -703,7 +703,16 @@ def payment_list_2(request):
         search_query_month = cache.get('search_query_month_from')
         #◯月１日で検索するようにする
         search_query_month += "-01"
-        payments = Payment.objects.all().filter(billing_year_month=search_query_month).order_by('payment_method_id', 'trade_division_id', 'order', 'id')
+        
+        #payments = Payment.objects.all().filter(billing_year_month=search_query_month).order_by('payment_method_id', 'trade_division_id', 'order', 'id')
+        #upd240424
+        #ブルーオーシャンへは村山・須戸デンキは別帳票で提示するので、
+        #ここでは除外する(社長提示用のデータでかつ常に変動していくため、表示させない)
+        payments = Payment.objects.all().filter(billing_year_month=search_query_month).\
+                                exclude(partner_id=settings.ID_MURAYAMA_DENKI).\
+                                exclude(partner_id=settings.ID_SUDO_DENKI).\
+                                order_by('payment_method_id', 'trade_division_id', 'order', 'id')
+        
     else:
         payments = Payment.objects.all()
     

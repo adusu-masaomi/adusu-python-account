@@ -3,6 +3,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 
 # Create your views here.
 from account.models import Partner
+from account.models import Account
+from account.models import Account_Sub
 from account.models import Account_Title
 from account.models import Bank
 from account.models import Bank_Branch
@@ -54,8 +56,9 @@ def ajax_partner_extract(req):
     if req.method == 'GET':
         partner_id = req.GET['partner_id']  # GETデータを取得して
         
+        #add240424 source_bank_id追加
         response = Partner.objects.all().filter(id__exact=partner_id).values("id", "trade_division_id", 
-           "account_title", "payment_method_id", "pay_day_division", "pay_day")
+           "account_title", "payment_method_id", "pay_day_division", "pay_day", "source_bank_id" )
         
         response = list(response)
         
@@ -110,7 +113,9 @@ def ajax_payment_sort(request):
 
 #テンプレートのソート用（勘定科目）
 def ajax_account_title_sort(request):
-
+    
+    #import pdb; pdb.set_trace()
+    
     if request.method == 'POST':
 
         # request.POST['content'] is a query string like 'entry[]=3&entry[]=2&entry[]=1'
@@ -124,9 +129,50 @@ def ajax_account_title_sort(request):
             
     return render(request, 'account/account_title_list.html')
 
+#テンプレートのソート用（勘定補助科目(貸借用)）
+def ajax_account_sub_sort(request):
+
+    #デバッグ
+    #import pdb; pdb.set_trace()
+
+    if request.method == 'POST':
+
+        # request.POST['content'] is a query string like 'entry[]=3&entry[]=2&entry[]=1'
+        account_subs = QueryDict(request.POST['content'])
+       
+        for index, account_sub_id in enumerate(account_subs.getlist('account_sub[]')):
+            
+            # save index of entry_id as it's new order value
+            account_sub = Account_Sub.objects.get(id=account_sub_id)
+            account_sub.order = index
+            account_sub.save()
+            
+    return render(request, 'account/account_sub_list.html')
+
+#テンプレートのソート用（勘定科目(貸借用)）
+def ajax_account_sort(request):
+
+    #デバッグ
+    #import pdb; pdb.set_trace()
+
+    if request.method == 'POST':
+
+        # request.POST['content'] is a query string like 'entry[]=3&entry[]=2&entry[]=1'
+        accounts = QueryDict(request.POST['content'])
+       
+        for index, account_id in enumerate(accounts.getlist('account[]')):
+            # save index of entry_id as it's new order value
+            account = Account.objects.get(id=account_id)
+            account.order = index
+            account.save()
+            
+    return render(request, 'account/account_list.html')
+
 #テンプレートのソート用（銀行）
 def ajax_bank_sort(request):
-
+    
+    #import pdb; pdb.set_trace()
+    
     if request.method == 'POST':
 
         # request.POST['content'] is a query string like 'entry[]=3&entry[]=2&entry[]=1'

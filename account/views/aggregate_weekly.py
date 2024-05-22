@@ -102,14 +102,19 @@ def set_weekly(request):
                                 settlement_date__lte=dtm_to.date())
             if cash_books is not None:
                 for cash_book in cash_books:
-                    if cash_book.staff_id == settings.ID_STAFF_PRESIDENT:
-                    #社長の場合
-                        balance_president += int(cash_book.incomes or 0)
-                        balance_president -= int(cash_book.expences or 0)
-                    else:
-                    #社員の場合
-                        balance_staff += int(cash_book.incomes or 0)
-                        balance_staff -= int(cash_book.expences or 0)
+                    #upd240427
+                    #社長・社員で分けない
+                    balance_staff += int(cash_book.incomes or 0)
+                    balance_staff -= int(cash_book.expences or 0)
+                    
+                    #if cash_book.staff_id == settings.ID_STAFF_PRESIDENT:
+                    ##社長の場合
+                    #    balance_president += int(cash_book.incomes or 0)
+                    #    balance_president -= int(cash_book.expences or 0)
+                    #else:
+                    ##社員の場合
+                    #    balance_staff += int(cash_book.incomes or 0)
+                    #    balance_staff -= int(cash_book.expences or 0)
                     
                 #総残高を算出
                 balance = balance_president + balance_staff

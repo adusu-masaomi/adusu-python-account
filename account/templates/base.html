@@ -94,10 +94,12 @@ body > .container {
 						  <ul class="dropdown-menu">
                             <!--<li><a href="{% url 'account:partner_list' %}">取引先マスター管理</a></li>-->
                             <li><a href="{% url 'account:password_auth_2' %}">取引先マスター管理</a></li>
-							<li><a href="{% url 'account:account_title_list' %}">勘定科目マスター管理</a></li>
+                            <li><a href="{% url 'account:account_title_list' %}">勘定科目マスター管理</a></li>
                             <li><a href="{% url 'account:bank_list' %}">銀行マスター管理</a></li>
                             <li><a href="{% url 'account:bank_branch_list' %}">銀行支店マスター管理</a></li>
-			              </ul>
+                            <li><a href="{% url 'account:account_list' %}">勘定科目マスター(貸借用)</a></li>
+                            <li><a href="{% url 'account:account_sub_list' %}">勘定科目補助(貸借用)</a></li>
+                          </ul>
 						</li>
 						<li class="dropdown">
                           <a href="#" class="dropdown-toggle" data-toggle="dropdown">支払管理<b class="caret"></b></a>
@@ -105,6 +107,8 @@ body > .container {
                             <!--<li><a href="{% url 'account:payment_list' %}">支払データ管理</a></li>-->
                             <li><a href="{% url 'account:password_auth_1' %}">支払データ管理</a></li>
                             <li><a href="{% url 'account:balance_sheet_list' %}">貸借データ管理</a></li>
+                            <li><a href="{% url 'account:daily_representative_loan_list' %}">貸付金データ管理</a></li>
+                            <li><a href="{% url 'account:monthly_representative_loan_list' %}">月次貸付金管理</a></li>
                             <li><a href="{% url 'account:cash_flow_detail_expected_list' %}">資金繰(予)管理</a></li>
                             <li><a href="{% url 'account:cash_flow_detail_actual_list' %}">資金繰(実)管理</a></li>
                           </ul>

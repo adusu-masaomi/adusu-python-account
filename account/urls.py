@@ -7,7 +7,9 @@ app_name = 'account'
 urlpatterns = [
     #メニュー
 	url(r'^index/$', views.views.index, name='index'),   # メニュー
-	# 取引先
+    #
+    # マスター管理
+    # 取引先
     url(r'^partner/$', views.views.partner_list, name='partner_list'),   # 一覧
     url(r'^password_auth_2/$', views.views.password_auth_2, name='password_auth_2'),   # 一覧(パスワード画面)
     url(r'^partner/add/$', views.views.partner_edit, name='partner_add'),  # 登録
@@ -33,6 +35,20 @@ urlpatterns = [
     url(r'^bank_branch/mod/(?P<bank_branch_id>\d+)/$', views.views.bank_branch_edit, name='bank_branch_mod'),  # 修正
     url(r'^bank_branch/del/(?P<bank_branch_id>\d+)/$', views.views.bank_branch_del, name='bank_branch_del'),   # 削除
     url('bank_branch_sort/', views.ajaxs.ajax_bank_branch_sort, name='bank_branch_sort'),                #ajax
+    # 勘定科目(貸借用)
+    url(r'^account/$', views.views.account_list, name='account_list'),     # 一覧
+    url(r'^account/add/$', views.views.account_edit, name='account_add'),  # 登録
+    url(r'^account/mod/(?P<account_id>\d+)/$', views.views.account_edit, name='account_mod'),    # 修正
+    url(r'^account/del/(?P<account_id>\d+)/$', views.views.account_del, name='account_del'),     # 削除
+    url('account_sort/', views.ajaxs.ajax_account_sort, name='account_sort'),                    #ajax
+    # 勘定補助科目(貸借用)
+    url(r'^account_sub/$', views.views.account_sub_list, name='account_sub_list'),                         # 一覧
+    url(r'^account_sub/add/$', views.views.account_sub_edit, name='account_sub_add'),                      # 登録
+    url(r'^account_sub/mod/(?P<account_sub_id>\d+)/$', views.views.account_sub_edit, name='account_sub_mod'),  # 修正
+    url(r'^account_sub/del/(?P<account_sub_id>\d+)/$', views.views.account_sub_del, name='account_sub_del'),   # 削除
+    url('account_sub_sort/', views.ajaxs.ajax_account_sub_sort, name='account_sub_sort'),                      #ajax
+    #
+    # 支払管理
     #支払
     url(r'^payment/$', views.views.payment_list, name='payment_list'),   # 一覧
     url(r'^password_auth_1/$', views.views.password_auth_1, name='password_auth_1'),   # 一覧(パスワード画面)
@@ -87,4 +103,15 @@ urlpatterns = [
     url(r'^balance_sheet/del/(?P<balance_sheet_id>\d+)/$', views.views.balance_sheet_del, name='balance_sheet_del'),   # 削除
     #貸借表
     url(r'^balance_sheet_tally/$', views.views.balance_sheet_tally_list, name='balance_sheet_tally_list'),   # 一覧
+    #add240425
+    #代表者貸付
+    url(r'^daily_representative_loan/$', views.views.daily_representative_loan_list, name='daily_representative_loan_list'),   # 一覧
+    url(r'^daily_representative_loan/add/$', views.views.daily_representative_loan_edit, name='daily_representative_loan_add'),  # 登録
+    url(r'^daily_representative_loan/mod/(?P<daily_representative_loan_id>\d+)/$', views.views.daily_representative_loan_edit, name='daily_representative_loan_mod'),  # 修正
+    url(r'^daily_representative_loan/del/(?P<daily_representative_loan_id>\d+)/$', views.views.daily_representative_loan_del, name='daily_representative_loan_del'),   # 削除
+    #代表者貸付(月次)
+    url(r'^monthly_representative_loan/$', views.views.monthly_representative_loan_list, name='monthly_representative_loan_list'),   # 一覧
+    url(r'^monthly_representative_loan/add/$', views.views.monthly_representative_loan_edit, name='monthly_representative_loan_add'),  # 登録
+    url(r'^monthly_representative_loan/mod/(?P<monthly_representative_loan_id>\d+)/$', views.views.monthly_representative_loan_edit, name='monthly_representative_loan_mod'),  # 修正
+    url(r'^monthly_representative_loan/del/(?P<monthly_representative_loan_id>\d+)/$', views.views.monthly_representative_loan_del, name='monthly_representative_loan_del'),   # 削除
 ]

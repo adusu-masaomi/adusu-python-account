@@ -2,6 +2,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 
 # Create your views here.
 from account.models import Partner
+from account.models import Account
+from account.models import Account_Sub
 from account.models import Account_Title
 from account.models import Bank
 from account.models import Bank_Branch
@@ -18,8 +20,12 @@ from account.models import Balance_Sheet
 from account.models import Balance_Sheet_Tally
 from account.models import Expence
 from account.models import Deposit
+from account.models import Daily_Representative_Loan
+from account.models import Monthly_Representative_Loan  #add240502
 #
 from account.forms import PartnerForm
+from account.forms import AccountForm
+from account.forms import Account_SubForm
 from account.forms import Account_TitleForm
 from account.forms import BankForm
 from account.forms import Bank_BranchForm
@@ -29,6 +35,8 @@ from account.forms import Cash_BookForm
 from account.forms import Cash_Book_WeeklyForm
 from account.forms import Cash_Flow_HeaderForm
 from account.forms import Balance_SheetForm
+from account.forms import Daily_Representative_LoanForm
+from account.forms import Monthly_Representative_LoanForm
 
 import json 
 from itertools import chain
@@ -46,9 +54,11 @@ from account.views import set_cash_flow_detail as Set_Cash_Flow_Detail  #add2001
 from account.views import set_cash_book_to_balance_sheet as Set_Cash_Book_To_Balance_Sheet    #add200124
 from account.views import set_daily_cash_flow as Set_Daily_Cash_flow    #add230130
 
+from account.views import set_representative_loan as Set_Representative_Loan  #add231121
+
 from django.conf import settings
 from django.db.models import Q  
-
+from django.contrib import messages
 
 #ログイン用
 #from __future__ import unicode_literals
@@ -174,6 +184,23 @@ def account_title_list(request):
     #return render(request,
     #              'account/account_title_list.html',     # 使用するテンプレート
     #              {'account_titles': account_titles})         # テンプレートに渡すデータ
+
+def account_list(request):
+    """勘定科目(貸借用)の一覧"""
+    accounts = Account.objects.all().order_by('id')
+    
+    return render(request,
+                'account/account_list.html',     # 使用するテンプレート
+                {'accounts': accounts})         # テンプレートに渡すデータ
+
+def account_sub_list(request):
+    """補助科目(貸借用)の一覧"""
+    account_subs = Account_Sub.objects.all().order_by('id')
+    
+    return render(request,
+                'account/account_sub_list.html',     # 使用するテンプレート
+                {'account_subs': account_subs})      # テンプレートに渡すデータ
+
 def bank_list(request):
     """銀行の一覧"""
     #デバッグ
@@ -540,6 +567,31 @@ def payment_list(request, number=None):
                 results = extract_payment(results, search_query_pay_month_to)
         ###
         
+        #add240425
+        #何も検索項目のない場合は月初からの検索とする
+        if search_flag == False:
+            search_flag = True
+            #
+            now_date = datetime.now()
+            first_date = now_date.replace(day=1)
+            
+            search_query_month_from = first_date.strftime ("%Y-%m")
+            search_query_month_to = first_date.strftime ("%Y-%m")
+            
+            cache.set('search_query_month_from', search_query_month_from, 86400)
+            cache.set('search_query_month_to', search_query_month_to, 86400)
+            #検索用に変換
+            search_query_month_from = first_date.strftime ("%Y-%m-%d")
+            search_query_month_to = first_date.strftime ("%Y-%m-%d")
+            search_query_pay_month_from = ""
+            search_query_pay_month_to = ""
+            search_query_update_date = ""
+            results = Payment.objects.all().filter(billing_year_month__gte=search_query_month_from, \
+                                                   billing_year_month__lte=search_query_month_from)
+            
+            
+        #add end
+        #
         
         
         #sort_by = request.GET.get('sort_by')
@@ -809,8 +861,7 @@ def cash_book_list(request):
     if request.method == 'GET': # If the form is submitted
         
         #form = Cash_BookForm(request.GET or None)
-        
-        
+               
         #import pdb; pdb.set_trace()
         
         
@@ -1464,6 +1515,22 @@ def balance_sheet_list(request):
             else:
                 results = results.filter(borrow_lend_id__icontains=search_query_borrow_lend_id)
         
+        #add240425
+        #何も検索項目のない場合は月初からの検索とする
+        if search_flag == False:
+            search_flag = True
+            #
+            now_date = datetime.now()
+            first_date = now_date.replace(day=1)
+            search_accrual_date_from = first_date.strftime ("%Y-%m-%d")
+            search_accrual_date_to = ""
+            #search_accrual_date_to = first_date.strftime ("%Y-%m-%d")
+            
+            results = Balance_Sheet.objects.all().filter(accrual_date__gte=search_accrual_date_from)
+            #
+            
+        #add end
+        
         if search_flag == True:
         #検索クエリーが入力されている場合のみ
             
@@ -1535,6 +1602,123 @@ def balance_sheet_tally_list(request):
     #            'account/balance_sheet_list.html',     # 使用するテンプレート
     #            {'balance_sheets': balance_sheets})         # テンプレートに渡すデータ
 
+#作成中 240425
+def daily_representative_loan_list(request):
+    """代表者貸付金の一覧"""
+    #デバッグ
+    #import pdb; pdb.set_trace()
+    #return HttpResponse('◯◯◯の一覧')
+    daily_representative_loans = Daily_Representative_Loan.objects.all().order_by('id')
+    
+    if request.method == 'GET': # If the form is submitted
+        search_occur_date_from = request.GET.get('q_occur_date_from', None)
+        search_occur_date_to = request.GET.get('q_occur_date_to', None)
+        #キャッシュに保存された検索結果をセット
+        if search_occur_date_from == None:
+            search_occur_date_from = cache.get('search_occur_date_from')
+        if search_occur_date_to == None:
+            search_occur_date_to = cache.get('search_occur_date_to')
+        #キャッシュへ検索結果をセット（最後の引数は、保存したい秒数）
+        cache.set('search_occur_date_from', search_occur_date_from, 10800)
+        cache.set('search_occur_date_to', search_occur_date_to, 10800)
+        #
+        results = None
+        search_flag = False
+        
+        if search_occur_date_from:
+            search_flag = True
+            results = Daily_Representative_Loan.objects.all().filter(occurred_on__gte=search_occur_date_from)
+        if search_occur_date_to:
+            search_flag = True
+            if results is None:
+                results = Daily_Representative_Loan.objects.all().filter(occurred_on__lte=search_occur_date_to)
+            else:
+                results = results.filter(occurred_on__lte=search_occur_date_to)
+        
+        #何も検索項目のない場合は月初で検索
+        if search_flag == False:
+            search_flag = True
+            
+            now_date = datetime.now()
+            first_date = now_date.replace(day=1)
+            
+            search_occur_date_from = first_date.strftime ("%Y-%m-%d")
+            search_occur_date_to = first_date.strftime ("%Y-%m-%d")
+            
+            results = Daily_Representative_Loan.objects.all().filter(occurred_on__gte=search_occur_date_from, \
+                                                                     occurred_on__lte=search_occur_date_to)
+        #        
+        
+        if search_flag == True:
+            return render(request,
+            'account/daily_representative_loan_list.html',     # 使用するテンプレート
+                  {'daily_representative_loans': results, 'search_query_date_from': search_occur_date_from, 
+                                                          'search_query_date_to': search_occur_date_to})         # テンプレートに渡すデータ
+        else:
+            return render(request,
+            'account/daily_representative_loan_list.html',     # 使用するテンプレート
+                  {'daily_representative_loans': daily_representative_loans})         # テンプレートに渡すデータ
+    else:
+        # Your code
+        return render(request,
+                  'account/daily_representative_loan_list.html',     # 使用するテンプレート
+                  {'daily_representative_loans': daily_representative_loans})         # テンプレートに渡すデータ
+
+def monthly_representative_loan_list(request):
+    """月次貸付金の一覧"""
+        
+    monthly_representative_loans = Monthly_Representative_Loan.objects.all().order_by('id')
+    
+    if request.method == 'GET': # If the form is submitted
+        search_date_from = request.GET.get('q_date_from', None)
+        search_date_to = request.GET.get('q_date_to', None)
+        #キャッシュに保存された検索結果をセット
+        if search_date_from == None:
+            search_date_from = cache.get('search_date_from')
+        if search_date_to == None:
+            search_date_to = cache.get('search_date_to')
+        #キャッシュへ検索結果をセット（最後の引数は、保存したい秒数）
+        cache.set('search_date_from', search_date_from, 10800)
+        cache.set('search_date_to', search_date_to, 10800)
+        
+        results = None
+        search_flag = False
+        
+        if search_date_from:
+            search_flag = True
+            #◯月１日で検索するようにする
+            search_date_from += "-01"
+            results = Monthly_Representative_Loan.objects.all().filter(occurred_year_month__gte=search_date_from)
+        if search_date_to:
+            search_flag = True
+            #◯月１日で検索するようにする
+            search_date_to += "-01"
+            if results is None:
+                results = Monthly_Representative_Loan.objects.all().filter(occurred_year_month__lte=search_date_to)
+            else:
+                results = results.filter(occurred_year_month__lte=search_date_to)
+        
+        if search_flag == True:
+            
+            if search_date_from:
+                search_date_from = search_date_from[:-3]
+            if search_date_to:
+                search_date_to = search_date_to[:-3]
+        
+            return render(request,
+                   'account/monthly_representative_loan_list.html',     
+                   {'monthly_representative_loans': results, 'search_query_date_from': search_date_from,
+                                                             'search_query_date_to': search_date_to })    
+        else:
+            return render(request,
+                   'account/monthly_representative_loan_list.html',    
+                   {'monthly_representative_loans': monthly_representative_loans})   
+    else:
+        return render(request,
+                   'account/monthly_representative_loan_list.html',     # 使用するテンプレート
+                   {'monthly_representative_loans': monthly_representative_loans})         # テンプレートに渡すデータ
+    
+    
 #def daterange(start_date, end_date):
 #    start_date = datetime.date.today()
 #    end_date = start_date + datetime.timedelta(days=5)
@@ -1594,6 +1778,43 @@ def account_title_edit(request, account_title_id=None):
 
     return render(request, 'account/account_title_edit.html', dict(form=form, account_title_id=account_title_id))
 
+def account_edit(request, account_id=None):
+    """勘定科目(貸借用)の編集"""
+#    return HttpResponse('勘定科目の編集')
+    if account_id:   # account_id が指定されている (修正時)
+        account = get_object_or_404(Account, pk=account_id)
+    else:         # account_id が指定されていない (追加時)
+        account = Account()
+    if request.method == 'POST':
+        form = AccountForm(request.POST, instance=account)  # POST された request データからフォームを作成
+        if form.is_valid():    # フォームのバリデーション
+            account = form.save(commit=False)
+            account.save()
+            return redirect('account:account_list')
+    else:    # GET の時
+        form = AccountForm(instance=account)  # account インスタンスからフォームを作成
+
+    return render(request, 'account/account_edit.html', dict(form=form, account_id=account_id))
+
+def account_sub_edit(request, account_sub_id=None):
+    """勘定補助科目(貸借用)の編集"""
+#    return HttpResponse('勘定科目の編集')
+    if account_sub_id:   # sub_account_id が指定されている (修正時)
+        account_sub = get_object_or_404(Account_Sub, pk=account_sub_id)
+    else:                # sub_account_id が指定されていない (追加時)
+        account_sub = Account_Sub()
+    if request.method == 'POST':
+        form = Account_SubForm(request.POST, instance=account_sub)  # POST された request データからフォームを作成
+        
+        if form.is_valid():    # フォームのバリデーション
+            account_sub = form.save(commit=False)
+            account_sub.save()
+            return redirect('account:account_sub_list')
+    else:    # GET の時
+        form = Account_SubForm(instance=account_sub)  # account インスタンスからフォームを作成
+
+    return render(request, 'account/account_sub_edit.html', dict(form=form, account_sub_id=account_sub_id))
+
 def bank_edit(request, bank_id=None):
     """銀行の編集"""
 #    return HttpResponse('勘定科目の編集')
@@ -1650,6 +1871,7 @@ def payment_edit(request, payment_id=None):
     #
     after_amount = 0
     after_due_date = None
+    after_due_date_changed = None  #add231028
     after_date = None
     #
     
@@ -1674,6 +1896,8 @@ def payment_edit(request, payment_id=None):
             pre_payment_amount = payment.rough_estimate
         pre_payment_date = payment.payment_date
         pre_payment_due_date = payment.payment_due_date
+        #add131028
+        pre_payment_due_date_changed = payment.payment_due_date_changed
         
         #変更前の日付・金額をセット
         pre_unpaid_amount = payment.unpaid_amount
@@ -1723,6 +1947,31 @@ def payment_edit(request, payment_id=None):
             if request.POST["payment_date"] != "":
                 after_date = datetime.strptime(request.POST["payment_date"], '%Y-%m-%d')
                 after_date = date(after_date.year, after_date.month, after_date.day)
+            
+            #add231028
+            #支払予定日の変更日対応
+            if request.POST["payment_due_date_changed"] != "":
+                after_due_date_changed = datetime.strptime(request.POST["payment_due_date_changed"], '%Y-%m-%d')
+                after_due_date_changed = date(after_due_date_changed.year, after_due_date_changed.month, after_due_date_changed.day)
+                
+                if pre_payment_due_date_changed is None and after_due_date_changed is not None:
+                    #支払予定変更日が新たにセットされた場合
+                    #支払予定日(後)を支払予定変更日としてセット
+                    if pre_due_date != after_due_date_changed:
+                        after_due_date = after_due_date_changed
+                elif after_due_date_changed is not None and \
+                     pre_payment_due_date_changed != after_due_date_changed:
+                    #支払予定変更日が変更になった場合
+                    #予定日(前後)へ変更日ををセット
+                    pre_due_date = pre_payment_due_date_changed
+                    after_due_date = after_due_date_changed
+                elif pre_due_date is not None and pre_payment_due_date_changed is not None and \
+                     pre_due_date != pre_payment_due_date_changed:
+                    #金額のみのケースを考慮。支払予定変更日がセットされている場合。
+                    #予定日(前後)へ変更日をセット
+                    pre_due_date = pre_payment_due_date_changed
+                    after_due_date = after_due_date_changed
+            #add end 
             
             #まず通常の支払日でdaily_cash_flowへ書き込む。
             first_flag = True
@@ -2046,6 +2295,13 @@ def cash_book_edit(request, cash_book_id=None):
             #Set_Cash_Book_To_Balance_Sheet.set_balance_sheet(cash_book.id)
             #
             
+            #upd231129
+            #代表者貸付金データへも保存
+            Set_Representative_Loan.set_cash_book_to_representative(cash_book)
+            
+            #table_id, occurred_on, description, amount, is_representative
+            #
+            
             return redirect('account:cash_book_list')
     else:    # GET の時
         
@@ -2265,6 +2521,13 @@ def balance_sheet_edit(request, balance_sheet_id=None):
             
             #
             
+            #代表者貸付金データへも保存
+            Set_Representative_Loan.set_balance_sheet_to_representative(balance_sheet.id, after_date, \
+                                    balance_sheet.description2, income_expence_flag, after_amount, \
+                                    balance_sheet.bank_id, balance_sheet.is_representative)
+            #
+            
+            
             #直接遷移フラグ
             direct_from_tally_flag = request.GET.get('direct_from_tally_flag', None)
             
@@ -2278,6 +2541,45 @@ def balance_sheet_edit(request, balance_sheet_id=None):
         form = Balance_SheetForm(instance=balance_sheet)  # cash_flow_header インスタンスからフォームを作成
 
     return render(request, 'account/balance_sheet_edit.html', dict(form=form, balance_sheet_id=balance_sheet_id))
+
+def daily_representative_loan_edit(request, daily_representative_loan_id=None):
+    """代表者貸付金の編集"""
+#    return HttpResponse('取引先の編集')
+    if daily_representative_loan_id:   # daily_representative_loan_id が指定されている (修正時)
+        daily_representative_loan = get_object_or_404(Daily_Representative_Loan, pk=daily_representative_loan_id)
+    else:         # partner_id が指定されていない (追加時)
+        daily_representative_loan = Daily_Representative_Loan()
+
+    if request.method == 'POST':
+        form = Daily_Representative_LoanForm(request.POST, instance=daily_representative_loan)  # POST された request データからフォームを作成
+        if form.is_valid():    # フォームのバリデーション
+            daily_representative_loan = form.save(commit=False)
+            daily_representative_loan.save()
+            return redirect('account:daily_representative_loan_list')
+    else:    # GET の時
+        form = Daily_Representative_LoanForm(instance=daily_representative_loan)  # partner インスタンスからフォームを作成
+
+    return render(request, 'account/daily_representative_loan_edit.html', dict(form=form, daily_representative_loan_id=daily_representative_loan_id))
+
+def monthly_representative_loan_edit(request, monthly_representative_loan_id=None):
+    """月次貸付金の編集"""
+#    return HttpResponse('取引先の編集')
+    if monthly_representative_loan_id:   # daily_representative_loan_id が指定されている (修正時)
+        monthly_representative_loan = get_object_or_404(Monthly_Representative_Loan, pk=monthly_representative_loan_id)
+    else:         # partner_id が指定されていない (追加時)
+        monthly_representative_loan = Monthly_Representative_Loan()
+
+    if request.method == 'POST':
+        form = Monthly_Representative_LoanForm(request.POST, instance=monthly_representative_loan)  # POST された request データからフォームを作成
+        if form.is_valid():    # フォームのバリデーション
+            monthly_representative_loan = form.save(commit=False)
+            monthly_representative_loan.save()
+            return redirect('account:monthly_representative_loan_list')
+    else:    # GET の時
+        form = Monthly_Representative_LoanForm(instance=monthly_representative_loan)  # partner インスタンスからフォームを作成
+
+    return render(request, 'account/monthly_representative_loan_edit.html', dict(form=form, monthly_representative_loan_id=monthly_representative_loan_id))
+
 
 ##### 削除ビュー #####
 def partner_del(request, partner_id):
@@ -2293,6 +2595,23 @@ def account_title_del(request, account_title_id):
     account_title = get_object_or_404(Account_Title, pk=account_title_id)
     account_title.delete()
     return redirect('account:account_title_list')
+
+def account_del(request, account_id):
+    """勘定科目(貸借用)の削除"""
+    if int(account_id) > 4:
+        account = get_object_or_404(Account, pk=account_id)
+        account.delete()
+        return redirect('account:account_list')
+    else:
+        #特定のIDは削除させない
+        messages.success(request, '※指定したIDはシステムで使用する為、削除できません。')
+        return redirect('account:account_list')
+
+def account_sub_del(request, account_sub_id):
+    """勘定補助科目(貸借用)の削除"""
+    account_sub = get_object_or_404(Account_Sub, pk=account_sub_id)
+    account_sub.delete()
+    return redirect('account:account_sub_list')
     
 def bank_del(request, bank_id):
     """銀行の削除"""
@@ -2329,6 +2648,10 @@ def payment_del(request, payment_id):
     #日次入出金データも減算(削除はしない)
     if payment.payment_date is not None:
         Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, payment.payment_date, payment.billing_amount, income_expence_flag)
+    elif payment.payment_due_date_changed is not None:
+    #add240522
+    #支払予定変更日があれば、そこから削除するようにする。
+        Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, payment.payment_due_date_changed, payment.billing_amount, income_expence_flag)
     else:
         Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, payment.payment_due_date, payment.billing_amount, income_expence_flag)
     #
@@ -2382,6 +2705,10 @@ def cash_book_del(request, cash_book_id):
         Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, cash_book.settlement_date, amount, income_expence_flag)
     #
     
+    #貸付金データの削除 (add240130)
+    Daily_Representative_Loan.objects.filter(table_type_id=2, table_id=cash_book_id).delete()
+    #
+    
     return redirect('account:cash_book_list')
 
 def cash_book_weekly_del(request, cash_book_weekly_id):
@@ -2425,8 +2752,25 @@ def balance_sheet_del(request, balance_sheet_id):
     Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, balance_sheet.accrual_date, balance_sheet.amount, income_expence_flag)
     #
     
+    #貸付金データの削除 (add240130)
+    Daily_Representative_Loan.objects.filter(table_type_id=1, table_id=balance_sheet_id).delete()
+    #
+    
     return redirect('account:balance_sheet_list')
     
+def daily_representative_loan_del(request, daily_representative_loan_id):
+    """代表者貸付金の削除"""
+    #return HttpResponse('代表者貸付金の削除')
+    daily_representative_loan = get_object_or_404(Daily_Representative_Loan, pk=daily_representative_loan_id)
+    daily_representative_loan.delete()
+    return redirect('account:daily_representative_loan_list')
+
+def monthly_representative_loan_del(request, monthly_representative_loan_id):
+    """月次貸付金の削除"""
+    #return HttpResponse('代表者貸付金の削除')
+    monthly_representative_loan = get_object_or_404(Monthly_Representative_Loan, pk=monthly_representative_loan_id)
+    monthly_representative_loan.delete()
+    return redirect('account:monthly_representative_loan_list')
 
 #検索フォーム用・・・
 #def get_queryset(self):

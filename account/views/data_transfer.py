@@ -306,6 +306,17 @@ def automake_payment(request):
             billing_amount = payment_reserve.billing_amount
             pay_date = payment_reserve.payment_due_date
             #Set_Daily_Cash_flow.set_daily_cash_flow(pay_date, billing_amount)
+            
+            ####
+            #add230626
+            #請求金額がない場合、概算金額をセットする
+            is_estimate = 0
+            if billing_amount is None or billing_amount == 0:
+                if payment_reserve.rough_estimate is not None:
+                    billing_amount = payment_reserve.rough_estimate
+                    is_estimate = 1
+            ####
+            
             income_expence_flag = 1
             Set_Daily_Cash_flow.set_daily_cash_flow(pay_date, billing_amount, income_expence_flag)
             #
@@ -313,8 +324,9 @@ def automake_payment(request):
             #import pdb; pdb.set_trace()
             
             #日次出金データへも保存
-            #Set_Daily_Cash_flow.set_expence(payment_reserve, pay_date, billing_amount)
-            Set_Daily_Cash_flow.set_payment_to_expence(payment_reserve, pay_date, billing_amount)
+            #Set_Daily_Cash_flow.set_payment_to_expence(payment_reserve, pay_date, billing_amount)
+            #upd230626
+            Set_Daily_Cash_flow.set_payment_to_expence(payment_reserve, pay_date, billing_amount, is_estimate)
             
             #add200121
             #資金繰明細データも保存する

@@ -1,5 +1,7 @@
 from django.forms import ModelForm
 from account.models import Partner
+from account.models import Account
+from account.models import Account_Sub
 from account.models import Account_Title
 from account.models import Bank
 from account.models import Bank_Branch
@@ -9,6 +11,8 @@ from account.models import Cash_Book
 from account.models import Cash_Book_Weekly
 from account.models import Cash_Flow_Header
 from account.models import Balance_Sheet
+from account.models import Daily_Representative_Loan
+from account.models import Monthly_Representative_Loan
 
 from django import forms
 from crispy_forms.helper import FormHelper
@@ -151,8 +155,6 @@ class PartnerForm(forms.ModelForm):
         )
         
         
-       
-        
 class Account_TitleForm(ModelForm):
     """勘定科目のフォーム"""
     class Meta:
@@ -161,6 +163,26 @@ class Account_TitleForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super(Account_TitleForm, self).__init__(*args, **kwargs) # Call to ModelForm constructor
         self.fields['trade_division_id'].widget.attrs['style'] = 'width:150px; height:40px;'
+class AccountForm(ModelForm):
+    """勘定科目(貸借用)のフォーム"""
+    class Meta:
+        model = Account
+        fields = ('name', )
+    def __init__(self, *args, **kwargs):
+        super(AccountForm, self).__init__(*args, **kwargs) # Call to ModelForm constructor
+        self.fields['name'].widget.attrs['style'] = 'width:450px; height:40px;'
+
+class Account_SubForm(ModelForm):
+    """勘定補助科目(貸借用)のフォーム"""
+    class Meta:
+        model = Account_Sub
+        fields = ('account', 'name', )
+    def __init__(self, *args, **kwargs):
+        super(Account_SubForm, self).__init__(*args, **kwargs) # Call to ModelForm constructor
+        self.fields['account'].widget.attrs['id'] = 'select1_1'
+        self.fields['account'].widget.attrs['style'] = 'width:200px; height:40px;'
+        self.fields['name'].widget.attrs['style'] = 'width:450px; height:40px;'
+        
 class BankForm(ModelForm):
     """銀行のフォーム"""
     class Meta:
@@ -195,11 +217,11 @@ class PaymentForm(forms.ModelForm):
         model = Payment
         fields = ('billing_year_month', 'partner', 'trade_division_id','account_title', 
            'payment_method_id', 'source_bank', 'source_bank_branch', 'billing_amount', 'rough_estimate', 'payment_amount', 'commission', 
-           'payment_due_date','payment_date','unpaid_amount','unpaid_date', 'unpaid_due_date', 'completed_flag', 'note')
+           'payment_due_date','payment_date','unpaid_amount','unpaid_date', 'unpaid_due_date', 'completed_flag', 
+           'note', 'payment_due_date_changed')
     
     def __init__(self, *args, **kwargs):
         super(PaymentForm, self).__init__(*args, **kwargs) # Call to ModelForm constructor
-        
         
         #請求〆日(datepicker)
         self.fields['billing_year_month'].widget.attrs['tabindex'] = 0
@@ -291,14 +313,20 @@ class PaymentForm(forms.ModelForm):
         self.fields['unpaid_date'].widget.attrs['style'] = 'width:120px; height:40px;'
         self.fields['unpaid_date'].widget.attrs['tabindex'] =  15
         
+        #支払予定変更日(datepicker)
+        self.fields['payment_due_date_changed'].widget = forms.DateInput(attrs={'class':'datepicker_3', 'id': 'payment_due_date_changed_picker'})
+        self.fields['payment_due_date_changed'].widget.attrs['style'] = 'width:120px; height:40px;'
+        self.fields['payment_due_date_changed'].widget.attrs['tabindex'] =  16
+        
+        
         #完了フラグ
         #self.fields['completed_flag'].widget = forms.CheckboxInput(attrs={'class': 'check'})
         self.fields['completed_flag'].widget.attrs['style'] = 'width:140px; height:40px;'
         self.fields['completed_flag'].widget.attrs['id'] = 'completed_flag_id_select'
-        self.fields['completed_flag'].widget.attrs['tabindex'] =  16
+        self.fields['completed_flag'].widget.attrs['tabindex'] =  17
         
         #備考
-        self.fields['note'].widget.attrs['tabindex'] = 17
+        self.fields['note'].widget.attrs['tabindex'] = 18
         
         #upd180418 フォーム揃える
         self.helper = FormHelper()
@@ -323,6 +351,7 @@ class PaymentForm(forms.ModelForm):
                  Div('unpaid_amount'),
                  Div('unpaid_due_date'),
                  Div('unpaid_date'),
+                 Div('payment_due_date_changed'),
                  Div('completed_flag'),
                  Div('note'),
                  ButtonHolder(
@@ -463,7 +492,8 @@ class Cash_BookForm(forms.ModelForm):
         model = Cash_Book
         fields = ('settlement_date', 'receipt_date', 'partner', 'description_partner', 
                   'description_content', 'account_title', 'staff', 
-                  'purchase_order_code', 'reduced_tax_flag', 'incomes', 'expences', )
+                  'purchase_order_code', 'reduced_tax_flag', 'incomes', 'expences', 
+                  'is_representative', )   #231128 "is_representative"追加
         
     def __init__(self, *args, **kwargs):
         super(Cash_BookForm, self).__init__(*args, **kwargs) # Call to ModelForm constructor
@@ -547,8 +577,9 @@ class Cash_BookForm(forms.ModelForm):
                  Div('description_partner'),
                  Div('description_content'),
                  Div('account_title'),
-                 Div('staff'),
-                 Div('purchase_order_code'),
+                 Div('staff', css_class='col-lg-3', style='margin-left:-15px;'),
+                 Div('is_representative',css_class='checkbox-inline', style='margin-top:15px;'),
+                 Div('purchase_order_code',style='margin-top:10px;'),
                  Div('reduced_tax_flag'),
                  Div('incomes'),
                  Div('expences'),
@@ -665,7 +696,7 @@ class Balance_SheetForm(forms.ModelForm):
     class Meta:
         model = Balance_Sheet
         fields = ('accrual_date', 'borrow_lend_id', 'amount','bank_id', 
-            'description')
+            'description','description2','is_representative')
     
     def __init__(self, *args, **kwargs):
         super(Balance_SheetForm, self).__init__(*args, **kwargs) # Call to ModelForm constructor
@@ -698,7 +729,9 @@ class Balance_SheetForm(forms.ModelForm):
         self.fields['description'].widget.attrs['id'] = 'amount'
         self.fields['description'].widget.attrs['tabindex'] = 5
         
-        
+        #摘要２
+        self.fields['description2'].widget.attrs['id'] = 'amount'
+        self.fields['description2'].widget.attrs['tabindex'] = 6
         
         #取引先(select2用)
         #self.fields['partner'].widget.attrs['style'] = 'width:200px; height:40px;'
@@ -762,6 +795,8 @@ class Balance_SheetForm(forms.ModelForm):
                  Div('bank_id'),
                  #Div('account_id'),
                  Div('description'),
+                 Div('description2'),
+                 Div('is_representative',css_class='checkbox-inline'),
                  
                  ButtonHolder(
                    Submit('submit', '登録', css_class='button white')
@@ -773,6 +808,37 @@ class Balance_SheetForm(forms.ModelForm):
         )
 
 
+class Daily_Representative_LoanForm(ModelForm):
+    """代表者貸付金のフォーム"""
+    class Meta:
+        model = Daily_Representative_Loan
+        fields = ('table_type_id','table_id','occurred_on','account','account_sub',
+                  'description','debit','credit', )
+    def __init__(self, *args, **kwargs):
+        super(Daily_Representative_LoanForm, self).__init__(*args, **kwargs) # Call to ModelForm constructor
+        self.fields['account'].widget.attrs['id'] = 'select1_1'
+        self.fields['account'].widget.attrs['style'] = 'width:150px; height:40px;'
+        self.fields['account_sub'].widget.attrs['id'] = 'select1_2'
+        self.fields['account_sub'].widget.attrs['style'] = 'width:150px; height:40px;'
+        #self.fields['???'].widget.attrs['style'] = 'width:450px; height:40px;'
+
+class Monthly_Representative_LoanForm(ModelForm):
+    """月次貸付金のフォーム"""
+    
+    occurred_year_month = forms.DateField(label='発生年月', input_formats=['%Y-%m'])
+    
+    class Meta:
+        model = Monthly_Representative_Loan
+        fields = ('occurred_year_month','last_month_balance', )
+    def __init__(self, *args, **kwargs):
+        super(Monthly_Representative_LoanForm, self).__init__(*args, **kwargs) # Call to ModelForm constructor
+        #発生月
+        self.fields['occurred_year_month'].widget.attrs['tabindex'] = 0
+        self.fields['occurred_year_month'].widget = forms.DateInput(attrs={'class':'datepicker_1', 'id': 'occurred_year_month_picker'})
+        self.fields['occurred_year_month'].widget.attrs['style'] = 'width:100px; height:40px;'
+        
+        #前月残
+        self.fields['last_month_balance'].widget.attrs['style'] = 'width:450px; height:40px;'
 
 
 #ノーマルなサンプル

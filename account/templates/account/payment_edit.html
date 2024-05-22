@@ -97,6 +97,16 @@
                   var newIndex = data.HTTPRESPONSE[i].payment_method_id;
                   $("#payment_method_id")[0].selectedIndex = newIndex;
                   
+                  //add240424
+                  //振込元銀行
+                  var newIndex = data.HTTPRESPONSE[i].source_bank_id;
+                  $no_change = true;
+                  $("#payment_source_bank").val(newIndex).trigger('change');
+                  
+                  //振込元銀行支店
+                  //var newIndex = data.HTTPRESPONSE[i].source_bank_branch_id;
+                  //$("#payment_source_bank_branch").val(newIndex).trigger('change');
+                  //add end
                   
                   //支払予定日
                   //土日は考慮していない
@@ -130,10 +140,14 @@
                 //select2を一旦クリアする
                 $("#payment_source_bank_branch").empty().trigger('change')
                 
-                //select2へデータをセットする（もっとスマートな方法があるかも・・）
-                for(let i = 0; i < data.HTTPRESPONSE.length; i++) {
-                  var newOption = new Option(data.HTTPRESPONSE[i].name, data.HTTPRESPONSE[i].id, true, true);
-                  $("#payment_source_bank_branch").append(newOption).trigger('change');
+                if (!$no_change){
+                  //select2へデータをセットする（もっとスマートな方法があるかも・・）
+                  for(let i = 0; i < data.HTTPRESPONSE.length; i++) {
+                    var newOption = new Option(data.HTTPRESPONSE[i].name, data.HTTPRESPONSE[i].id, true, true);
+                    $("#payment_source_bank_branch").append(newOption).trigger('change');
+                  }
+                }else{
+                  $no_change = false;
                 }
             },
        });
@@ -312,6 +326,23 @@
          }
       }
     })
+    
+    //add231028
+    //支払予定変更日のdatepicker
+    $('#payment_due_date_changed_picker').datepicker({
+    dateFormat: dateFormatNormal,
+      //カレンダーを開いた時、入力値の状態にさせる処理
+      beforeShow: function (dateText, inst) { 
+        dateText = document.getElementById("payment_due_date_changed_picker").value;
+        date = new Date(dateText);
+        if (dateText != ""){
+          $.datepicker.setDefaults({"defaultDate":date});
+        }
+      },
+      //onSelect: function(){
+      //},
+      // You can put more options here.
+    });
     
     //ENTER→TABキーに変換する処理。
     //$('[tabindex]').keydown(function (e) {

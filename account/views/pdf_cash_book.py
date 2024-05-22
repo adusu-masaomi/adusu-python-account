@@ -39,9 +39,13 @@ HEADER_X = 26
 
 #出納帳用 印刷位置定数
 HEADER_X_TITLE_C = 32
-HEADER_X_ADJUST_NUM = 40  #数値の印字調整値
+#HEADER_X_ADJUST_NUM = 40  #数値の印字調整値
+#HEADER_X_ADJUST_NUM = 20  #数値の印字調整値  upd230419
+HEADER_X_ADJUST_NUM = 25  #数値の印字調整値  upd230419
 HEADER_X_TITLE_PRESIDENT = 110  #残高（社長分）
-HEADER_X_TITLE_STAFF = 190  #残高(社員分)
+#HEADER_X_TITLE_STAFF = 190  #残高(社員分)
+#HEADER_X_TITLE_STAFF = 250  #残高(社員分)
+HEADER_X_TITLE_STAFF = 245  #残高(社員分)
 HEADER_Y_C = 20
 
 POS_X_ADJUST_STR = 2     #文字の位置微調整
@@ -51,18 +55,17 @@ POS_X_RECEIPT = 61
 POS_X_SUBJECT = 86
 POS_X_DESCRIPTION = 116
 POS_X_DESCRIPTION_2 = 158
-POS_X_INCOMES = 200
-POS_X_EXPENCES = 225  #230
-POS_X_EXPENCES_STAFF = 250 #260
+#POS_X_INCOMES = 200
+POS_X_INCOMES = 225
+#POS_X_EXPENCES = 225
+POS_X_EXPENCES = 250  
+#POS_X_EXPENCES_STAFF = 250 
 
-POS_X_EXPENCES_PRESIDENT = 273 #260
-
+POS_X_EXPENCES_PRESIDENT = 273 
 POS_X_BALANCE = 273 #
 
-#POS_RIGHT_SIDE_C = 295
-POS_RIGHT_SIDE_C = 294  #UPD220310
-#POS_RIGHT_SIDE_C = 283   #UPD190824
-POS_NOTE = 293  #備考(軽減税率などの場合)の場所
+POS_RIGHT_SIDE_C = 294  #
+POS_NOTE = 293          #備考(軽減税率などの場合)の場所
 #####
 
 #DETAIL_START_X = 20
@@ -217,8 +220,9 @@ def list_1(request):
             incomes = cash_book.incomes or 0
             
             incomes_president = 0
-            if cash_book.staff_id == settings.ID_STAFF_PRESIDENT:
-                incomes_president = cash_book.incomes or 0
+            #230419〜振り分けない
+            #if cash_book.staff_id == settings.ID_STAFF_PRESIDENT:
+            #    incomes_president = cash_book.incomes or 0
             
             if incomes == 0:
                 #注文番号があれば出力する
@@ -235,35 +239,50 @@ def list_1(request):
                 p.drawRightString(x*mm, y*mm, str_tmp)
             
             #支出金額
-            #社長と社員で切り分ける
+            #社長と社員で切り分ける(2023~なし)
+            
             expences_president = 0
             expences_staff = 0
             
             expences = cash_book.expences or 0
             
-            if cash_book.staff_id == settings.ID_STAFF_PRESIDENT:
-                expences_president = cash_book.expences or 0
-            else:
-                expences_staff = cash_book.expences or 0
+            #230419~社員のみ
+            expences_staff = cash_book.expences or 0
+            
+            #del240427
+            #社長も社員と同じ枠として考える
+            #社長用は基本ないので、アラート用にセットする
+            #if cash_book.staff_id == settings.ID_STAFF_PRESIDENT:
+            #    expences_president = cash_book.expences or 0
+            
+            #if cash_book.staff_id == settings.ID_STAFF_PRESIDENT:
+            #    expences_president = cash_book.expences or 0
+            #else:
+            #    expences_staff = cash_book.expences or 0
                     
-            #社員分
-            x = POS_X_EXPENCES_STAFF - POS_X_ADJUST_STR
+            ##社員分
+            #支出
+            #(2023~社員のみ)
+            #x = POS_X_EXPENCES_STAFF - POS_X_ADJUST_STR
+            x = POS_X_BALANCE - POS_X_ADJUST_STR
             if expences_staff > 0:
                 str_tmp = "￥" + str("{0:,d}".format(expences_staff))  #桁区切り
                 p.drawRightString(x*mm, y*mm, str_tmp)
+            
             #社長分
-            #x = POS_RIGHT_SIDE_C - POS_X_ADJUST_STR
-            x = POS_X_EXPENCES_PRESIDENT - POS_X_ADJUST_STR
+            ##x = POS_X_EXPENCES_PRESIDENT - POS_X_ADJUST_STR
+            x = POS_X_EXPENCES + POS_X_ADJUST_STR + 2
             if expences_president > 0:
-                str_tmp = "￥" + str("{0:,d}".format(expences_president))  #桁区切り
+                #str_tmp = "￥" + str("{0:,d}".format(expences_president))  #桁区切り
+                str_tmp = "※"  #アラート用
                 p.drawRightString(x*mm, y*mm, str_tmp)
-            else:
-                #add180903
-                #社長分の入金の場合に注釈を入れる
-                if incomes_president > 0:
-                    x = POS_X_EXPENCES + POS_X_ADJUST_STR
-                    str_tmp = "(社長分)"
-                    p.drawString(x*mm, y*mm, str_tmp)
+            #else:
+            #    #社長分の入金の場合に注釈を入れる
+            #    if incomes_president > 0:
+            #        x = POS_X_EXPENCES + POS_X_ADJUST_STR
+            #        str_tmp = "(社長分)"
+            #        p.drawString(x*mm, y*mm, str_tmp)
+            
             #行ごとの残高
             balance += incomes - expences
             
@@ -290,7 +309,8 @@ def list_1(request):
             p.line(POS_X_DESCRIPTION_2*mm, START_DETAIL_Y*mm, POS_X_DESCRIPTION_2*mm, (START_DETAIL_Y + SEP_Y)*mm) 
             p.line(POS_X_INCOMES*mm, START_DETAIL_Y*mm, POS_X_INCOMES*mm, (START_DETAIL_Y + SEP_Y)*mm) 
             p.line(POS_X_EXPENCES*mm, START_DETAIL_Y*mm, POS_X_EXPENCES*mm, (START_DETAIL_Y + SEP_Y)*mm) 
-            p.line(POS_X_EXPENCES_STAFF*mm, START_DETAIL_Y*mm, POS_X_EXPENCES_STAFF*mm, (START_DETAIL_Y + SEP_Y)*mm) 
+            #del230419
+            #p.line(POS_X_EXPENCES_STAFF*mm, START_DETAIL_Y*mm, POS_X_EXPENCES_STAFF*mm, (START_DETAIL_Y + SEP_Y)*mm) 
             p.line(POS_X_BALANCE*mm, START_DETAIL_Y*mm, POS_X_BALANCE*mm, (START_DETAIL_Y + SEP_Y)*mm) 
             #
         
@@ -299,32 +319,35 @@ def list_1(request):
         y += SEP_Y
         y += SEP_Y
         
+        #del230419
         #総残高
-        str_tmp = "総残高"
-        x = HEADER_X_TITLE_C
-        p.drawString((x)*mm, y*mm, str_tmp)
-    
-        balance = cache.get('balance')
-        if balance is not None:
-            str_tmp = "￥" + str("{0:,d}".format(balance))  #桁区切り
-            x += HEADER_X_ADJUST_NUM
-            p.drawString((x)*mm, y*mm, str_tmp)
-    
+        #str_tmp = "総残高"
+        #x = HEADER_X_TITLE_C
+        #p.drawString((x)*mm, y*mm, str_tmp)
+        #balance = cache.get('balance')
+        #if balance is not None:
+        #    str_tmp = "￥" + str("{0:,d}".format(balance))  #桁区切り
+        #    x += HEADER_X_ADJUST_NUM
+        #    p.drawString((x)*mm, y*mm, str_tmp)
+        
+        #del230419
         #残高（社長）
-        x = HEADER_X_TITLE_PRESIDENT
-        str_tmp = "残高（社長分）"
-        p.drawString((x)*mm, y*mm, str_tmp)
-        balance_president = cache.get('balance_president')
-        if balance_president is not None:
-            str_tmp = "￥" + str("{0:,d}".format(balance_president))  #桁区切り
-            x += HEADER_X_ADJUST_NUM
-            p.drawString((x)*mm, y*mm, str_tmp)
+        #x = HEADER_X_TITLE_PRESIDENT
+        #str_tmp = "残高（社長分）"
+        #p.drawString((x)*mm, y*mm, str_tmp)
+        #balance_president = cache.get('balance_president')
+        #if balance_president is not None:
+        #    str_tmp = "￥" + str("{0:,d}".format(balance_president))  #桁区切り
+        #    x += HEADER_X_ADJUST_NUM
+        #    p.drawString((x)*mm, y*mm, str_tmp)
     
         #残高（社員）
         x = HEADER_X_TITLE_STAFF 
-        str_tmp = "残高（社員分）"
+        #str_tmp = "残高（社員分）"
+        str_tmp = "残高(終了)"
         p.drawString((x)*mm, y*mm, str_tmp)
-        balance_staff = cache.get('balance_staff')
+        #balance_staff = cache.get('balance_staff')
+        balance_staff = cache.get('balance')
         if balance_staff is not None:
             str_tmp = "￥" + str("{0:,d}".format(balance_staff))  #桁区切り
             x += HEADER_X_ADJUST_NUM
@@ -731,10 +754,12 @@ def set_title_1(p,x,y):
     
     ###
     if page_count == 1:     #先頭ページのみ出力
-        #総残高
+        ##総残高
+        #残高
         y += SEP_Y
         y += SEP_Y
-        str_tmp = "総残高"
+        #str_tmp = "総残高"
+        str_tmp = "残高(開始)"
         x = HEADER_X_TITLE_C
         p.drawString((x)*mm, y*mm, str_tmp)
     
@@ -743,26 +768,28 @@ def set_title_1(p,x,y):
             str_tmp = "￥" + str("{0:,d}".format(pre_balance))  #桁区切り
             x += HEADER_X_ADJUST_NUM
             p.drawString((x)*mm, y*mm, str_tmp)
-    
+        
+        #del230419
         #残高（社長）
-        x = HEADER_X_TITLE_PRESIDENT
-        str_tmp = "残高（社長分）"
-        p.drawString((x)*mm, y*mm, str_tmp)
-        pre_balance_president = cache.get('pre_balance_president')
-        if pre_balance_president is not None:
-            str_tmp = "￥" + str("{0:,d}".format(pre_balance_president))  #桁区切り
-            x += HEADER_X_ADJUST_NUM
-            p.drawString((x)*mm, y*mm, str_tmp)
+        #x = HEADER_X_TITLE_PRESIDENT
+        #str_tmp = "残高（社長分）"
+        #p.drawString((x)*mm, y*mm, str_tmp)
+        #pre_balance_president = cache.get('pre_balance_president')
+        #if pre_balance_president is not None:
+        #    str_tmp = "￥" + str("{0:,d}".format(pre_balance_president))  #桁区切り
+        #    x += HEADER_X_ADJUST_NUM
+        #    p.drawString((x)*mm, y*mm, str_tmp)
     
+        #del230419
         #残高（社員）
-        x = HEADER_X_TITLE_STAFF 
-        str_tmp = "残高（社員分）"
-        p.drawString((x)*mm, y*mm, str_tmp)
-        pre_balance_staff = cache.get('pre_balance_staff')
-        if pre_balance_staff is not None:
-            str_tmp = "￥" + str("{0:,d}".format(pre_balance_staff))  #桁区切り
-            x += HEADER_X_ADJUST_NUM
-            p.drawString((x)*mm, y*mm, str_tmp)
+        #x = HEADER_X_TITLE_STAFF 
+        #str_tmp = "残高（社員分）"
+        #p.drawString((x)*mm, y*mm, str_tmp)
+        #pre_balance_staff = cache.get('pre_balance_staff')
+        #if pre_balance_staff is not None:
+        #    str_tmp = "￥" + str("{0:,d}".format(pre_balance_staff))  #桁区切り
+        #    x += HEADER_X_ADJUST_NUM
+        #    p.drawString((x)*mm, y*mm, str_tmp)
         
     
     #
@@ -800,9 +827,9 @@ def set_title_1(p,x,y):
     str_tmp = "支出"
     p.drawString(x*mm, y*mm, str_tmp)
     
-    x = POS_X_EXPENCES_STAFF + POS_X_ADJUST_STR
-    str_tmp = "社長分"
-    p.drawString(x*mm, y*mm, str_tmp)
+    #x = POS_X_EXPENCES_STAFF + POS_X_ADJUST_STR
+    #str_tmp = "社長分"
+    #p.drawString(x*mm, y*mm, str_tmp)
     
     x = POS_X_BALANCE + POS_X_ADJUST_STR
     str_tmp = "残高"
@@ -821,7 +848,8 @@ def set_title_1(p,x,y):
     
     p.line(POS_X_INCOMES*mm, START_DETAIL_Y*mm, POS_X_INCOMES*mm, (START_DETAIL_Y + SEP_Y)*mm) 
     p.line(POS_X_EXPENCES*mm, START_DETAIL_Y*mm, POS_X_EXPENCES*mm, (START_DETAIL_Y + SEP_Y)*mm) 
-    p.line(POS_X_EXPENCES_STAFF*mm, START_DETAIL_Y*mm, POS_X_EXPENCES_STAFF*mm, (START_DETAIL_Y + SEP_Y)*mm) 
+    #del230419
+    #p.line(POS_X_EXPENCES_STAFF*mm, START_DETAIL_Y*mm, POS_X_EXPENCES_STAFF*mm, (START_DETAIL_Y + SEP_Y)*mm) 
     p.line(POS_X_BALANCE*mm, START_DETAIL_Y*mm, POS_X_BALANCE*mm, (START_DETAIL_Y + SEP_Y)*mm) 
     #
     
