@@ -22,6 +22,8 @@ from account.models import Expence
 from account.models import Deposit
 from account.models import Daily_Representative_Loan
 from account.models import Monthly_Representative_Loan  #add240502
+from account.models import Accrued_Expence  #add240727
+
 #
 from account.forms import PartnerForm
 from account.forms import AccountForm
@@ -37,6 +39,7 @@ from account.forms import Cash_Flow_HeaderForm
 from account.forms import Balance_SheetForm
 from account.forms import Daily_Representative_LoanForm
 from account.forms import Monthly_Representative_LoanForm
+from account.forms import Accrued_ExpenceForm  #add240729
 
 import json 
 from itertools import chain
@@ -285,6 +288,30 @@ def password_auth_2(request):
         else:
             return render(request, 'account/index.html')
 
+#未払費用画面
+def password_auth_3(request):
+    
+    if(request.method == 'GET'):
+        
+        return render(request, 'account/password_auth_3.html')
+    
+    elif(request.method == 'POST'):
+    
+        username = request.POST['username']
+        password = request.POST['password']
+        
+        #ここは総務用のパスワード認証できるようにする。ベタ打ちで
+        check = False
+        if (username == "soumu" and password == "470211#"):
+            check = True
+        
+        if check:
+            
+            return HttpResponseRedirect('../accrued_expence')
+ 
+        else:
+            return render(request, 'account/index.html')
+
 def payment_list(request, number=None):
     """支払の一覧"""
     
@@ -355,7 +382,9 @@ def payment_list(request, number=None):
         cache.set('search_query_partner', search_query_partner, 10800)
         cache.set('search_query_paid', search_query_paid, 10800)
         
-        cache.set('search_query_update_date', search_query_update_date, 10800)
+        #cache.set('search_query_update_date', search_query_update_date, 10800)
+        #upd240716
+        cache.set('search_query_update_date', search_query_update_date, 86400)
         #
         
         ###フィルタリング
@@ -847,7 +876,9 @@ def cash_book_list(request):
     """出納帳の一覧"""
     #return HttpResponse('取引先の一覧')
     #cash_books = Cash_Book.objects.all().order_by('id')
-    cash_books = Cash_Book.objects.all().order_by('settlement_date', 'order')
+    
+    #del240702 ここで全件を取ってくるので、データ量が増えると処理がフリーズしてしまう
+    #cash_books = Cash_Book.objects.all().order_by('settlement_date', 'order')
     
     #検索フォーム用に勘定科目も取得 
     account_titles = Account_Title.objects.all().order_by('order')
@@ -1719,6 +1750,59 @@ def monthly_representative_loan_list(request):
                    {'monthly_representative_loans': monthly_representative_loans})         # テンプレートに渡すデータ
     
     
+#add240727
+def accrued_expence_list(request):
+    """未払費用の一覧"""
+    
+    #デバッグ
+    #import pdb; pdb.set_trace()
+    #return HttpResponse('◯◯◯の一覧')
+    accrued_expences = Accrued_Expence.objects.all().order_by('id')
+    
+    if request.method == 'GET': # If the form is submitted
+        search_date_from = request.GET.get('q_date_from', None)
+        search_date_to = request.GET.get('q_date_to', None)
+        #キャッシュに保存された検索結果をセット
+        if search_date_from == None:
+            search_date_from = cache.get('search_date_from')
+        if search_date_to == None:
+            search_date_to = cache.get('search_date_to')
+        
+        #キャッシュへ検索結果をセット（最後の引数は、保存したい秒数）
+        cache.set('search_date_from', search_date_from, 10800)
+        cache.set('search_date_to', search_date_to, 10800)
+        
+        results = None
+        search_flag = False
+        
+        #import pdb; pdb.set_trace()
+        
+        if search_date_from:
+            search_flag = True
+            #◯月１日で検索するようにする
+            #search_date_from += "-01"
+            results = Accrued_Expence.objects.all().filter(occurred_on__gte=search_date_from)
+        
+        if search_date_to:
+            search_flag = True
+            results = Accrued_Expence.objects.all().filter(occurred_on__lte=search_date_to)
+        
+        if search_flag == True:
+        
+            return render(request,
+                   'account/accrued_expence_list.html',     
+                   {'accrued_expences': results, 'search_query_date_from': search_date_from,
+                                                             'search_query_date_to': search_date_to })
+        else:
+            return render(request,
+                  'account/accrued_expence_list.html',     # 使用するテンプレート
+                  {'accrued_expences': accrued_expences})         # テンプレートに渡すデータ
+    else:
+        return render(request,
+                  'account/accrued_expence_list.html',     # 使用するテンプレート
+                  {'accrued_expences': accrued_expences})         # テンプレートに渡すデータ
+
+
 #def daterange(start_date, end_date):
 #    start_date = datetime.date.today()
 #    end_date = start_date + datetime.timedelta(days=5)
@@ -2580,7 +2664,27 @@ def monthly_representative_loan_edit(request, monthly_representative_loan_id=Non
 
     return render(request, 'account/monthly_representative_loan_edit.html', dict(form=form, monthly_representative_loan_id=monthly_representative_loan_id))
 
+#add240729
+def accrued_expence_edit(request, accrued_expence_id=None):
+    """未払費用の編集"""
+    
+    #作成中.....
+    if accrued_expence_id:   # accrued_expence_id が指定されている (修正時)
+        accrued_expence = get_object_or_404(Accrued_Expence, pk=accrued_expence_id)
+    else:         # partner_id が指定されていない (追加時)
+        accrued_expence = Accrued_Expence()
 
+    if request.method == 'POST':
+        form = Accrued_ExpenceForm(request.POST, instance=accrued_expence)  # POST された request データからフォームを作成
+        if form.is_valid():    # フォームのバリデーション
+            accrued_expence = form.save(commit=False)
+            accrued_expence.save()
+            return redirect('account:accrued_expence_list')
+    else:    # GET の時
+        form = Accrued_ExpenceForm(instance=accrued_expence)  # partner インスタンスからフォームを作成
+
+    return render(request, 'account/accrued_expence_edit.html', dict(form=form, accrued_expence_id=accrued_expence_id))
+    
 ##### 削除ビュー #####
 def partner_del(request, partner_id):
     """取引先の削除"""
@@ -2772,6 +2876,13 @@ def monthly_representative_loan_del(request, monthly_representative_loan_id):
     monthly_representative_loan.delete()
     return redirect('account:monthly_representative_loan_list')
 
+def accrued_expence_del(request, accrued_expence_id):
+    """未払費用の削除"""
+    #return HttpResponse('未払費用の削除')
+    accrued_expence = get_object_or_404(Accrued_Expence, pk=accrued_expence_id)
+    accrued_expence.delete()
+    return redirect('account:accrued_expence_list')
+    
 #検索フォーム用・・・
 #def get_queryset(self):
 #    #デバッグ？

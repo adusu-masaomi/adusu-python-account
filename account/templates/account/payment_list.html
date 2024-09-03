@@ -54,11 +54,10 @@ table {
         
         <button type="button" class="btn btn-grey400_rsd btn-xs" onclick="clearDateTo()" >×</button>
         
-        <!-- test -->
         <label for="searchbox">更新日:</label>
-        <input class="searchfield" id="search_upadte_date" name="q_update_date" type="text" value="{{search_query_update_date}}" placeholder="未選択..."/>
-        <!--test end-->
-        
+        <input class="searchfield" id="search_update_date" name="q_update_date" type="text" value="{{search_query_update_date}}" placeholder="未選択..."/>
+        <button type="button" class="btn btn-grey400_rsd btn-xs" onclick="clearUpdateDate()" >×</button>
+    
         </br>
         
         <label for="id_paid">支払状況:</label>
@@ -313,7 +312,7 @@ table {
     });
     
     //更新日
-    $('#search_upadte_date').datepicker({
+    $('#search_update_date').datepicker({
           });
     
      //select2をenterキー押下した場合(リストが閉じられた時)のタブ移動。
@@ -417,6 +416,10 @@ table {
   //支払終了日をクリアする
   function clearPayDateTo(){
    document.getElementById("search_pay_month_to").value = "";
+  }
+  //更新日をクリアする
+  function clearUpdateDate(){
+    document.getElementById("search_update_date").value = "";
   }
   
   //取引区分をクリアする

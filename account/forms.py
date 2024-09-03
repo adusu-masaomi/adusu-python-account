@@ -13,6 +13,7 @@ from account.models import Cash_Flow_Header
 from account.models import Balance_Sheet
 from account.models import Daily_Representative_Loan
 from account.models import Monthly_Representative_Loan
+from account.models import Accrued_Expence   #add240729
 
 from django import forms
 from crispy_forms.helper import FormHelper
@@ -20,6 +21,7 @@ from crispy_forms.layout import Submit, Layout, Div, Button, ButtonHolder, Field
 #from django.contrib.admin import widgets  
 from django.forms import DateTimeField
 from datetimewidget.widgets import DateTimeWidget
+
 #from django.core.cache import cache
 
 #from django.core.urlresolvers import reverse
@@ -840,6 +842,16 @@ class Monthly_Representative_LoanForm(ModelForm):
         #前月残
         self.fields['last_month_balance'].widget.attrs['style'] = 'width:450px; height:40px;'
 
+class Accrued_ExpenceForm(ModelForm):
+    """未払費用のフォーム"""
+    class Meta:
+        model = Accrued_Expence
+        fields = ('occurred_on','saraly', )
+    def __init__(self, *args, **kwargs):
+        super(Accrued_ExpenceForm, self).__init__(*args, **kwargs) # Call to ModelForm constructor
+        self.fields['occurred_on'].widget = forms.DateInput(attrs={'class':'datepicker_1', 'id': 'occurred_on_picker'})
+        self.fields['occurred_on'].widget.attrs['style'] = 'width:100px; height:40px;'
+        self.fields['saraly'].widget.attrs['style'] = 'width:220px; height:40px;'
 
 #ノーマルなサンプル
 #class XXXForm(ModelForm):

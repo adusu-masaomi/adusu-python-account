@@ -114,4 +114,10 @@ urlpatterns = [
     url(r'^monthly_representative_loan/add/$', views.views.monthly_representative_loan_edit, name='monthly_representative_loan_add'),  # 登録
     url(r'^monthly_representative_loan/mod/(?P<monthly_representative_loan_id>\d+)/$', views.views.monthly_representative_loan_edit, name='monthly_representative_loan_mod'),  # 修正
     url(r'^monthly_representative_loan/del/(?P<monthly_representative_loan_id>\d+)/$', views.views.monthly_representative_loan_del, name='monthly_representative_loan_del'),   # 削除
+    #未払費用
+    url(r'^accrued_expence/$', views.views.accrued_expence_list, name='accrued_expence_list'),   # 一覧
+    url(r'^password_auth_3/$', views.views.password_auth_3, name='password_auth_3'),   # 一覧(パスワード画面)
+    url(r'^accrued_expence/add/$', views.views.accrued_expence_edit, name='accrued_expence_add'),  # 登録
+    url(r'^accrued_expence/mod/(?P<accrued_expence_id>\d+)/$', views.views.accrued_expence_edit, name='accrued_expence_mod'),  # 修正
+    url(r'^accrued_expence/del/(?P<accrued_expence_id>\d+)/$', views.views.accrued_expence_del, name='accrued_expence_del'),   # 削除
 ]
