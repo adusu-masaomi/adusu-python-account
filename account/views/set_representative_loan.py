@@ -81,7 +81,8 @@ def save_cash_book_to_representative(representative_loan, cash_book):
     representative_loan.credit = cash_book.incomes
     
     #摘要
-    representative_loan.description = "個人より"
+    #representative_loan.description = "個人より"
+    representative_loan.description = "社長より"  #upd250109
     representative_loan.save()
     
 #貸借表データ→貸付金データへ
@@ -100,15 +101,27 @@ def save_balance_sheet_to_representative(representative_loan, table_id, occurred
     tmp_id = convert_bank(bank_id)
             
     representative_loan.sub_account_id = tmp_id
-            
+        
     if income_expence_flag == settings.FLAG_BP_INCOME:
         #借→貸方勘定へ
         representative_loan.credit = amount
         representative_loan.debit = None
+        
+        #del250109
+        #add250108
+        #摘要未入力の場合のデフォルト設定
+        #if description == "":
+        #    description = "社長より"
     else:
         #貸→借方勘定へ
         representative_loan.debit = amount
         representative_loan.credit = None
+        
+        #del250109
+        #add250108
+        #摘要未入力の場合のデフォルト設定
+        #if description == "":
+        #    description = "社長へ"
     #摘要
     representative_loan.description = description
     representative_loan.save()

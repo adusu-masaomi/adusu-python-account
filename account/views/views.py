@@ -319,7 +319,8 @@ def payment_list(request, number=None):
 
     #return HttpResponse('◯◯◯の一覧')
     #payments = Payment.objects.all().order_by('id')
-    payments = Payment.objects.all().order_by('order')
+    #del241016 処理落ちするため抹消
+    #payments = Payment.objects.all().order_by('order')
     
     #検索フォーム用に取引先も取得 
     #add180403
@@ -412,8 +413,9 @@ def payment_list(request, number=None):
             if search_query_paid and search_query_paid == "1":
             #upd190514
             #支払済のものだけ検索した場合に、検索開始月のフィルターを有効にする
-                results = Payment.objects.all().filter(payment_due_date__gte=search_query_pay_month_from)
-        
+                #results = Payment.objects.all().filter(payment_due_date__gte=search_query_pay_month_from)
+                #upd241016
+                results = Payment.objects.filter(payment_due_date__gte=search_query_pay_month_from)
         search_query_pay_month_plus_to = None
         
         if search_query_pay_month_to:
@@ -448,8 +450,9 @@ def payment_list(request, number=None):
             #import pdb; pdb.set_trace()
             
             if results is None:
-                #results = Payment.objects.all().filter(payment_due_date__lte=search_query_pay_month_to)
-                results = Payment.objects.all().filter(payment_due_date__lte=search_query_pay_month_plus_to)
+                #results = Payment.objects.all().filter(payment_due_date__lte=search_query_pay_month_plus_to)
+                #upd241016
+                results = Payment.objects.filter(payment_due_date__lte=search_query_pay_month_plus_to)
             else:
                 #results = results.filter(payment_due_date__lte=search_query_pay_month_to)
                 results = results.filter(payment_due_date__lte=search_query_pay_month_plus_to)
@@ -469,7 +472,9 @@ def payment_list(request, number=None):
             to_datetime = from_datetime + timedelta(days=1)
             
             if results is None:
-                results = Payment.objects.all().filter(update_at__gte=from_datetime, update_at__lte=to_datetime)
+                #results = Payment.objects.all().filter(update_at__gte=from_datetime, update_at__lte=to_datetime)
+                #upd241016
+                results = Payment.objects.filter(update_at__gte=from_datetime, update_at__lte=to_datetime)
             else:
                 results = results.filter(update_at__gte=from_datetime, update_at__lte=to_datetime)
             
@@ -480,7 +485,9 @@ def payment_list(request, number=None):
             search_query_month_from += "-01"
             #results = Payment.objects.all().filter(billing_year_month__gte=search_query_month_from).order_by('order')
             if results is None:
-                results = Payment.objects.all().filter(billing_year_month__gte=search_query_month_from)
+                #results = Payment.objects.all().filter(billing_year_month__gte=search_query_month_from)
+                #upd241016
+                results = Payment.objects.filter(billing_year_month__gte=search_query_month_from)
             else:
                 results = results.filter(billing_year_month__gte=search_query_month_from)
                 
@@ -490,8 +497,9 @@ def payment_list(request, number=None):
             #◯月１日で検索するようにする
             search_query_month_to += "-01"
             if results is None:
-                #results = Payment.objects.all().filter(billing_year_month__lte=search_query_month_to).order_by('order')
-                results = Payment.objects.all().filter(billing_year_month__lte=search_query_month_to)
+                #results = Payment.objects.all().filter(billing_year_month__lte=search_query_month_to)
+                #upd241016
+                results = Payment.objects.filter(billing_year_month__lte=search_query_month_to)
             else:
                 #results = results.filter(billing_year_month__lte=search_query_month_to).order_by('order')
                 results = results.filter(billing_year_month__lte=search_query_month_to)
@@ -500,8 +508,9 @@ def payment_list(request, number=None):
         #取引区分で絞り込み
             search_flag = True
             if results is None:
-                #results = Payment.objects.all().filter(trade_division_id__icontains=search_query_trade_division_id).order_by('order')
-                results = Payment.objects.all().filter(trade_division_id__icontains=search_query_trade_division_id)
+                #results = Payment.objects.all().filter(trade_division_id__icontains=search_query_trade_division_id)
+                #upd241016
+                results = Payment.objects.filter(trade_division_id__icontains=search_query_trade_division_id)
             else:
                 #results = results.filter(trade_division_id__icontains=search_query_trade_division_id).order_by('order')
                 results = results.filter(trade_division_id__icontains=search_query_trade_division_id)
@@ -510,8 +519,9 @@ def payment_list(request, number=None):
         #支払方法で絞り込み
             search_flag = True
             if results is None:
-                #results = Payment.objects.all().filter(payment_method_id__icontains=search_query_payment).order_by('order')
-                results = Payment.objects.all().filter(payment_method_id__icontains=search_query_payment)
+                #results = Payment.objects.all().filter(payment_method_id__icontains=search_query_payment)
+                #upd241016
+                results = Payment.objects.filter(payment_method_id__icontains=search_query_payment)
             else:
                 #results = results.filter(payment_method_id__icontains=search_query_payment).order_by('order')
                 results = results.filter(payment_method_id__icontains=search_query_payment)
@@ -520,8 +530,9 @@ def payment_list(request, number=None):
         #支払先で絞り込み
             search_flag = True
             if results is None:
-                #results = Payment.objects.all().filter(partner_id=search_query_partner).order_by('order')
-                results = Payment.objects.all().filter(partner_id=search_query_partner)
+                #results = Payment.objects.all().filter(partner_id=search_query_partner)
+                #upd241016
+                results = Payment.objects.filter(partner_id=search_query_partner)
             else:
                 #results = results.filter(partner_id=search_query_partner).order_by('order')
                 results = results.filter(partner_id=search_query_partner)
@@ -531,7 +542,9 @@ def payment_list(request, number=None):
             if search_query_paid == "0":
                 search_flag = True
                 if results is None:
-                    results = Payment.objects.all().filter(payment_date__isnull=True).order_by('order')
+                    #results = Payment.objects.all().filter(payment_date__isnull=True).order_by('order')
+                    #upd241016
+                    results = Payment.objects.filter(payment_date__isnull=True).order_by('order')
                 else:
                     results = results.filter(payment_date__isnull=True)
                 #results = results.order_by('partner_id', 'billing_year_month', 'order')
@@ -539,7 +552,9 @@ def payment_list(request, number=None):
             #支払済
                 search_flag = True
                 if results is None:
-                    results = Payment.objects.all().filter(payment_date__isnull=False)
+                    #results = Payment.objects.all().filter(payment_date__isnull=False)
+                    #upd241016
+                    results = Payment.objects.filter(payment_date__isnull=False)
                 else:
                     results = results.filter(payment_date__isnull=False)
                 #results = results.order_by('partner_id', 'billing_year_month', 'order')
@@ -574,18 +589,27 @@ def payment_list(request, number=None):
                     
                     #upd200507
                     #支払日=null or 未払金有&未払支払日=null
-                    results = Payment.objects.all().filter(
+                    #results = Payment.objects.all().filter(
+                    #Q(unpaid_date__isnull=True) , Q(unpaid_amount__gt=0) |
+                    #Q(payment_date__isnull=True), Q(payment_due_date__lte=search_month)
+                    #).order_by('order')
+                    #upd241016
+                    results = Payment.objects.filter(
                     Q(unpaid_date__isnull=True) , Q(unpaid_amount__gt=0) |
                     Q(payment_date__isnull=True), Q(payment_due_date__lte=search_month)
                     ).order_by('order')
-                    
                     
                 else:
                     #results = results.filter(payment_date__isnull=True)
                     
                     #upd200507
                     #支払日=null or 未払金有&未払支払日=null
-                    results = Payment.objects.all().filter(
+                    #results = Payment.objects.all().filter(
+                    #Q(unpaid_date__isnull=True) , Q(unpaid_amount__gt=0) |
+                    #Q(payment_date__isnull=True), Q(payment_due_date__lte=search_month)
+                    #)
+                    #upd241016
+                    results = Payment.objects.filter(
                     Q(unpaid_date__isnull=True) , Q(unpaid_amount__gt=0) |
                     Q(payment_date__isnull=True), Q(payment_due_date__lte=search_month)
                     )
@@ -615,8 +639,12 @@ def payment_list(request, number=None):
             search_query_pay_month_from = ""
             search_query_pay_month_to = ""
             search_query_update_date = ""
-            results = Payment.objects.all().filter(billing_year_month__gte=search_query_month_from, \
+            #results = Payment.objects.all().filter(billing_year_month__gte=search_query_month_from, \
+            #                                       billing_year_month__lte=search_query_month_from)
+            #upd241016
+            results = Payment.objects.filter(billing_year_month__gte=search_query_month_from, \
                                                    billing_year_month__lte=search_query_month_from)
+            
             
             
         #add end
@@ -2588,6 +2616,8 @@ def balance_sheet_edit(request, balance_sheet_id=None):
             
             #保存(通常の処理)
             balance_sheet = form.save(commit=False)
+            #貸付金扱いの場合摘要2のデフォルト値を設定
+            balance_sheet_description_set_default(balance_sheet, income_expence_flag)
             balance_sheet.save()
             
             #日次入金・出金データを作成(上の行でID作成されていることが前提)
@@ -2626,6 +2656,15 @@ def balance_sheet_edit(request, balance_sheet_id=None):
 
     return render(request, 'account/balance_sheet_edit.html', dict(form=form, balance_sheet_id=balance_sheet_id))
 
+#代表者貸付扱いで摘要2が未入力の場合、初期値を入れる
+def balance_sheet_description_set_default(balance_sheet, income_expence_flag):
+    if balance_sheet.is_representative:
+        if balance_sheet.description2 == "":
+            if income_expence_flag == settings.FLAG_BP_INCOME:
+                balance_sheet.description2 = "社長より"
+            else:
+                balance_sheet.description2 = "社長へ"
+                
 def daily_representative_loan_edit(request, daily_representative_loan_id=None):
     """代表者貸付金の編集"""
 #    return HttpResponse('取引先の編集')
@@ -2749,15 +2788,27 @@ def payment_del(request, payment_id):
     global income_expence_flag
     income_expence_flag = 1   #収入支出フラグ(支出)
     
+    #add241008
+    #日次入出金データ -- 請求金額が未入力なら概算金額が書き込まれているため減算させる
+    billing_amount = 0
+    if payment.billing_amount is not None and payment.billing_amount > 0:
+        billing_amount = payment.billing_amount
+    elif payment.rough_estimate is not None and payment.rough_estimate > 0:
+        billing_amount = payment.rough_estimate
+    #
+    
     #日次入出金データも減算(削除はしない)
     if payment.payment_date is not None:
-        Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, payment.payment_date, payment.billing_amount, income_expence_flag)
+        #Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, payment.payment_date, payment.billing_amount, income_expence_flag)
+        Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, payment.payment_date, billing_amount, income_expence_flag)
     elif payment.payment_due_date_changed is not None:
     #add240522
     #支払予定変更日があれば、そこから削除するようにする。
-        Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, payment.payment_due_date_changed, payment.billing_amount, income_expence_flag)
+        #Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, payment.payment_due_date_changed, payment.billing_amount, income_expence_flag)
+        Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, payment.payment_due_date_changed, billing_amount, income_expence_flag)
     else:
-        Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, payment.payment_due_date, payment.billing_amount, income_expence_flag)
+        #Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, payment.payment_due_date, payment.billing_amount, income_expence_flag)
+        Set_Daily_Cash_flow.delete_daily_cash_flow(table_type_id, payment.payment_due_date, billing_amount, income_expence_flag)
     #
     
     return redirect('account:payment_list')

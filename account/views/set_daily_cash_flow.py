@@ -295,8 +295,6 @@ def set_complete_flag(table_id, table_type_id, pay_date, completed_flag, income_
 #日次入出金ファイルから減算
 def delete_daily_cash_flow(table_type_id, pay_date, billing_amount, income_expence_flag):
     
-    #import pdb; pdb.set_trace()
-    
     if pay_date is not None and billing_amount is not None:
         daily_cash_flow = DailyCashFlow.objects.filter(cash_flow_date=pay_date).first()
         

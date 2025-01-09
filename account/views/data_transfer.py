@@ -385,8 +385,19 @@ def minus_daily_cash_flow(assigned_date):
     
     if payments is not None:
         for payment in payments:
-            if payment.billing_amount is not None and \
-               payment.billing_amount > 0:
+        
+            #upd241028
+            #概算の場合も考慮
+            amount = 0
+            if payment.billing_amount is not None and payment.billing_amount > 0:
+                amount = payment.billing_amount
+            elif payment.rough_estimate is not None and payment.rough_estimate > 0:
+                amount = payment.rough_estimate
+            #
+        
+            if amount > 0:
+            #if payment.billing_amount is not None and \
+            #   payment.billing_amount > 0:
                
                if payment.payment_due_date is not None:
                    payment_due_date = payment.payment_due_date
@@ -395,7 +406,8 @@ def minus_daily_cash_flow(assigned_date):
                    
                    if daily_cash_flow is not None:
                        if daily_cash_flow.expence is not None:
-                           daily_cash_flow.expence -= payment.billing_amount
+                           #daily_cash_flow.expence -= payment.billing_amount
+                           daily_cash_flow.expence -= amount
                            daily_cash_flow.save()
 #add230128
 #日次入出金ファイルへ加算

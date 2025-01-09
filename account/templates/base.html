@@ -24,9 +24,11 @@ body > .container {
 
         <!-- Latest compiled and minified CSS -->
         <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.1/css/bootstrap.min.css">
-        <link href="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.min.css" type="text/css" media="screen" rel="stylesheet" />
+        <!--upd241017 https追加-->
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.min.css" type="text/css" media="screen" rel="stylesheet" />
         <!--for datepicker-->
-        <link href="//cdn.bootcss.com/bootstrap-datetimepicker/4.17.44/css/bootstrap-datetimepicker.min.css" rel="stylesheet">
+        <!--upd241017 https追加-->
+        <link href="https://cdn.bootcss.com/bootstrap-datetimepicker/4.17.44/css/bootstrap-datetimepicker.min.css" rel="stylesheet">
         <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1/themes/redmond/jquery-ui.css" >
         <link rel="stylesheet" href="https://cdn.rawgit.com/maechabin/bootstrap-material-button-color/master/dist/cb-materialbtn.0.5.5.min.css" />
         <!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">-->
@@ -49,12 +51,17 @@ body > .container {
         <!--for datepicker-->
         <script src="https://code.jquery.com/jquery-1.9.1.js"></script>
         <script src="https://code.jquery.com/ui/1.11.0/jquery-ui.js"></script>
-        <script src="//cdn.bootcss.com/moment.js/2.17.1/moment.min.js"></script>
-        <script src="//cdn.bootcss.com/bootstrap-datetimepicker/4.17.44/js/bootstrap-datetimepicker.min.js"></script>
+        <!--<script src="https://cdn.bootcss.com/moment.js/2.17.1/moment.min.js"></script>-->
+        <!--<script src="https://cdn.bootcss.com/bootstrap-datetimepicker/4.17.44/js/bootstrap-datetimepicker.min.js"></script>-->
+    
+        <!-- upd241017 上記(cdn.bootcss.com)は表示が遅い不具合が出ていた為、切替 -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.44/js/bootstrap-datetimepicker.min.js"></script>
+    
         <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/i18n/jquery-ui-i18n.min.js"></script>
         
         <!--select2-->
-        <script src="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/js/select2.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/js/select2.min.js"></script>
         
         <!--tablefix-->
         <script src="{{ STATIC_URL }} /static/js/jquery.tablefix.js" ></script>
@@ -153,7 +160,7 @@ body > .container {
 			    <h1>ADUSU会計管理</h1>
 				<h1>Webシステム</h1>
                 <p>
-                   Copyright (C) 2018 copyrights.<a href="http://adusu-denki.com/">
+                   Copyright (C) 2018 copyrights.<a href="https://adusu-denki.com/">
 	                 adusu-denki.com</a> All Rights Reserved.
                 </p>
                 <a href="{% url 'logout' %}"   >ログアウト</a>
