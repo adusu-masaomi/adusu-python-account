@@ -566,6 +566,9 @@ class Cash_BookForm(forms.ModelForm):
         #self.fields['expences'].widget.attrs['tabindex'] = 9
         self.fields['expences'].widget.attrs['tabindex'] = 10
         
+        #add250109
+        self.fields['is_representative'].widget.attrs['id'] = 'is_representative'
+        
         #フォーム揃える   add230331
         self.helper = FormHelper()
         self.helper.form_method = 'post'
@@ -831,7 +834,7 @@ class Monthly_Representative_LoanForm(ModelForm):
     
     class Meta:
         model = Monthly_Representative_Loan
-        fields = ('occurred_year_month','last_month_balance', )
+        fields = ('occurred_year_month','last_month_balance', 'last_month_balance_total')
     def __init__(self, *args, **kwargs):
         super(Monthly_Representative_LoanForm, self).__init__(*args, **kwargs) # Call to ModelForm constructor
         #発生月
@@ -841,7 +844,9 @@ class Monthly_Representative_LoanForm(ModelForm):
         
         #前月残
         self.fields['last_month_balance'].widget.attrs['style'] = 'width:450px; height:40px;'
-
+        #前月残累計
+        self.fields['last_month_balance_total'].widget.attrs['style'] = 'width:450px; height:40px;'
+        
 class Accrued_ExpenceForm(ModelForm):
     """未払費用のフォーム"""
     class Meta:

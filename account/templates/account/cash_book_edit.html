@@ -153,8 +153,32 @@
         $('[tabindex='+(tabindex+1)+']').focus();
     }
     });
-
     
+    //add250109
+    //貸付金チェック後の、摘要のデフォルト値を設定
+    $('#is_representative').click(function(){
+        if($(this).is(':checked')){
+            //$('input[name="totalCost"]').val(10);
+            let account_title = document.getElementById('account_title');
+            //入金を選択した場合、摘要を自動でセットする
+            if (account_title.selectedIndex == 20){
+                document.getElementById("description_content").value = "入金（社長より）"
+            }
+            
+        } else {
+            //calculate();
+        }
+    });
+
+    //const checkbox = document.getElementById('is_representative')
+    //debugger;
+    //checkbox.addEventListener('change', (event) => {
+    //  if (event.currentTarget.checked) {
+    //    alert('checked');
+    //  } else {
+    //    alert('not checked');
+    //  }
+    //})
     
   });
   

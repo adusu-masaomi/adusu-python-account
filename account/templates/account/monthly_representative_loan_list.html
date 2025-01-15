@@ -41,6 +41,7 @@ table {
           <th>ID</th>
           <th>発生年月</th>
           <th>前月残</th>
+          <th>前月残累計</th>
         </tr>
       </thead>
       <tbody>
@@ -52,6 +53,11 @@ table {
             <td align="right">￥{{ monthly_representative_loan.last_month_balance| intcomma:False }}</td>
           {% else %}
             <td align="right">{{ monthly_representative_loan.last_month_balance| default_if_none:EMPTY_MARK }}</td>
+          {% endif %}
+          {% if monthly_representative_loan.last_month_balance_total != null %}
+            <td align="right">￥{{ monthly_representative_loan.last_month_balance_total| intcomma:False }}</td>
+          {% else %}
+            <td align="right">{{ monthly_representative_loan.last_month_balance_total| default_if_none:EMPTY_MARK }}</td>
           {% endif %}
           <td>
             <!--編集・削除・・・ひとまずカット-->
