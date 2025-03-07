@@ -41,7 +41,7 @@ mecab-python3==0.7
 nltk==3.3
 numpy==1.14.3
 oauthlib==2.0.7
-Pillow==5.0.0
+Pillow==9.3.0
 protobuf==3.5.2.post1
 PyJWT==1.5.0
 PyMySQL==0.7.11
