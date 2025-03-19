@@ -38,7 +38,7 @@ kiwisolver==1.0.1
 Markdown==2.6.11
 matplotlib==2.2.2
 mecab-python3==0.7
-nltk==3.3
+nltk==3.4.5
 numpy==1.14.3
 oauthlib==2.0.7
 Pillow==5.0.0
