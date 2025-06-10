@@ -13,7 +13,10 @@ from account.models import Cash_Flow_Header
 from account.models import Balance_Sheet
 from account.models import Daily_Representative_Loan
 from account.models import Monthly_Representative_Loan
-from account.models import Accrued_Expence   #add240729
+from account.models import Yearly_Representative_Loan
+from account.models import Accrued_Expence   
+from account.models import Compensation        #add250123
+from account.models import Daily_Compensation  #add250325
 
 from django import forms
 from crispy_forms.helper import FormHelper
@@ -495,7 +498,7 @@ class Cash_BookForm(forms.ModelForm):
         fields = ('settlement_date', 'receipt_date', 'partner', 'description_partner', 
                   'description_content', 'account_title', 'staff', 
                   'purchase_order_code', 'reduced_tax_flag', 'incomes', 'expences', 
-                  'is_representative', )   #231128 "is_representative"追加
+                  'is_representative', 'is_no_invoice')   #250610 "is_no_invoice"追加
         
     def __init__(self, *args, **kwargs):
         super(Cash_BookForm, self).__init__(*args, **kwargs) # Call to ModelForm constructor
@@ -585,8 +588,9 @@ class Cash_BookForm(forms.ModelForm):
                  Div('staff', css_class='col-lg-3', style='margin-left:-15px;'),
                  Div('is_representative',css_class='checkbox-inline', style='margin-top:15px;'),
                  Div('purchase_order_code',style='margin-top:10px;'),
-                 Div('reduced_tax_flag'),
-                 Div('incomes'),
+                 Div('reduced_tax_flag', css_class='col-lg-3', style='margin-left:-15px;'),
+                 Div('is_no_invoice',css_class='checkbox-inline', style='margin-top:20px;'),
+                 Div('incomes',style='margin-top:20px;'),
                  Div('expences'),
                  ButtonHolder(
                    Submit('submit', '登録', css_class='button white')
@@ -846,6 +850,27 @@ class Monthly_Representative_LoanForm(ModelForm):
         self.fields['last_month_balance'].widget.attrs['style'] = 'width:450px; height:40px;'
         #前月残累計
         self.fields['last_month_balance_total'].widget.attrs['style'] = 'width:450px; height:40px;'
+
+class Yearly_Representative_LoanForm(ModelForm):
+    """年次貸付金のフォーム"""
+    occurred_year = forms.DateField(label='発生年', input_formats=['%Y'])
+    
+    class Meta:
+        model = Yearly_Representative_Loan
+        fields = ('occurred_year', 'beginning_balance')
+        
+    def __init__(self, *args, **kwargs):
+        super(Yearly_Representative_LoanForm, self).__init__(*args, **kwargs)
+        
+        #発生年
+        self.fields['occurred_year'].widget.attrs['tabindex'] = 0
+        self.fields['occurred_year'].widget = forms.DateInput(attrs={'class':'datepicker_1', 'id': 'occurred_year_picker'})
+        self.fields['occurred_year'].widget.attrs['style'] = 'width:100px; height:40px;'
+        
+        #残高
+        self.fields['beginning_balance'].widget.attrs['id'] = 'beginning_balance';
+        self.fields['beginning_balance'].widget.attrs['style'] = 'width:220px; height:40px;'
+        self.fields['beginning_balance'].widget.attrs['tabindex'] = 1
         
 class Accrued_ExpenceForm(ModelForm):
     """未払費用のフォーム"""
@@ -858,6 +883,115 @@ class Accrued_ExpenceForm(ModelForm):
         self.fields['occurred_on'].widget.attrs['style'] = 'width:100px; height:40px;'
         self.fields['saraly'].widget.attrs['style'] = 'width:220px; height:40px;'
 
+#add250123
+class CompensationForm(ModelForm):
+    """役員報酬のフォーム"""
+    
+    #これがないとvalidationで引っかかる
+    payment_year_month = forms.DateField(label='支給年月', input_formats=['%Y-%m'])
+    
+    class Meta:
+        model = Compensation
+        fields = ('payment_year_month', 'amount', 'paid_amount', 'unpaid_amount', 'carryover_amount', 'is_completed')
+    def __init__(self, *args, **kwargs):
+        super(CompensationForm, self).__init__(*args, **kwargs) # Call to ModelForm constructor
+        self.fields['payment_year_month'].widget = forms.DateInput(attrs={'class':'datepicker_1', 'id': 'payment_year_month_picker'})
+        #self.fields['payment_year_month'].widget = forms.DateInput(attrs={'class':'datepicker_1', 'id': 'payment_year_month_picker'})
+        self.fields['payment_year_month'].widget.attrs['style'] = 'width:100px; height:40px;'
+        #
+        self.fields['amount'].widget.attrs['id'] = 'amount'
+        self.fields['amount'].widget.attrs['style'] = 'width:220px; height:40px;'
+        self.fields['amount'].widget.attrs['onchange'] = "setCarryOver();"
+        self.fields['amount'].widget.attrs['tabindex'] = 1
+        
+        self.fields['paid_amount'].widget.attrs['id'] = 'paid_amount'
+        self.fields['paid_amount'].widget.attrs['style'] = 'width:220px; height:40px;'
+        self.fields['paid_amount'].widget.attrs['onchange'] = "calcUnpaid();"
+        self.fields['paid_amount'].widget.attrs['tabindex'] = 2
+        
+        self.fields['unpaid_amount'].widget.attrs['id'] = 'unpaid_amount'
+        self.fields['unpaid_amount'].widget.attrs['style'] = 'width:220px; height:40px;'
+        self.fields['unpaid_amount'].widget.attrs['tabindex'] = 3
+        
+        self.fields['carryover_amount'].widget.attrs['id'] = 'carryover_amount'
+        self.fields['carryover_amount'].widget.attrs['style'] = 'width:220px; height:40px;'
+        self.fields['carryover_amount'].widget.attrs['tabindex'] = 4
+        #
+        self.fields['is_completed'].widget.attrs['style'] = 'width:140px; height:40px;'
+        self.fields['is_completed'].widget.attrs['id'] = 'is_completed'
+        #self.fields['is_completed'].widget.attrs['tabindex'] = 5
+
+#add250324
+class Daily_CompensationForm(ModelForm):
+    """日次役員報酬のフォーム"""
+    
+    #paid_on = forms.DateField(label='支給年月日', input_formats=['%Y-%m-%d'])
+    
+    #これがないとvalidationで引っかかる
+    target_year_month_1 = forms.DateField(label='対象年月１', input_formats=['%Y-%m'])
+    target_year_month_2 = forms.DateField(label='対象年月２', input_formats=['%Y-%m'], required=False)
+    target_year_month_3 = forms.DateField(label='対象年月３', input_formats=['%Y-%m'], required=False)
+    
+    class Meta:
+        model = Daily_Compensation
+        #fields = ('paid_on', 'amount', 'target_year_month_1', 'target_year_month_2', 
+        #          'target_year_month_3', 'deduction_amount_1', 'deduction_amount_2', 
+        #          'deduction_amount_3' )
+        fields = ('paid_on', 'amount', 'target_year_month_1', 'deduction_amount_1', 
+                  'carryover_amount_1', 'target_year_month_2', 'deduction_amount_2', 
+                  'carryover_amount_2', 'target_year_month_3', 'deduction_amount_3', 
+                  'carryover_amount_3' )
+    def __init__(self, *args, **kwargs):
+        super(Daily_CompensationForm, self).__init__(*args, **kwargs) # Call to ModelForm constructor
+        self.fields['paid_on'].widget = forms.DateInput(attrs={'class':'datepicker_1', 'id': 'paid_on_picker'})
+        self.fields['paid_on'].widget.attrs['style'] = 'width:100px; height:40px;'
+        
+        self.fields['amount'].widget.attrs['id'] = 'amount'
+        self.fields['amount'].widget.attrs['style'] = 'width:220px; height:40px;'
+        self.fields['amount'].widget.attrs['onchange'] = "setDeduction()";
+        #add250422
+        #self.fields['amount'].widget.attrs['onfocus'] = "setBeforeAmount()";
+        self.fields['amount'].widget.attrs['tabindex'] = 1
+        
+        self.fields['target_year_month_1'].widget = forms.DateInput(attrs={'class':'datepicker_1', 'id': 'target_year_month_1_picker'})
+        self.fields['target_year_month_1'].widget.attrs['style'] = 'width:220px; height:40px;'
+        
+        self.fields['deduction_amount_1'].widget.attrs['id'] = 'deduction_amount_1'
+        self.fields['deduction_amount_1'].widget.attrs['style'] = 'width:220px; height:40px;'
+        self.fields['deduction_amount_1'].widget.attrs['tabindex'] = 3
+        #
+        self.fields['carryover_amount_1'].widget.attrs['id'] = 'carryover_amount_1'
+        self.fields['carryover_amount_1'].widget.attrs['style'] = 'width:220px; height:40px;'
+        self.fields['carryover_amount_1'].widget.attrs['tabindex'] = 4
+        #
+        self.fields['target_year_month_2'].widget = forms.DateInput(attrs={'class':'datepicker_2', 'id': 'target_year_month_2_picker'})
+        self.fields['target_year_month_2'].widget.attrs['style'] = 'width:220px; height40px;'
+        
+        self.fields['deduction_amount_2'].widget.attrs['id'] = 'deduction_amount_2'
+        self.fields['deduction_amount_2'].widget.attrs['style'] = 'width:220px; height:40px;'
+        #self.fields['deduction_amount_2'].widget.attrs['tabindex'] = 5
+        self.fields['deduction_amount_2'].widget.attrs['tabindex'] = 6
+        
+        #
+        self.fields['carryover_amount_2'].widget.attrs['id'] = 'carryover_amount_2'
+        self.fields['carryover_amount_2'].widget.attrs['style'] = 'width:220px; height:40px;'
+        #self.fields['carryover_amount_2'].widget.attrs['tabindex'] = 6
+        self.fields['carryover_amount_2'].widget.attrs['tabindex'] = 7
+        #
+        
+        self.fields['target_year_month_3'].widget = forms.DateInput(attrs={'class':'datepicker_3', 'id': 'target_year_month_3_picker'})
+        self.fields['target_year_month_3'].widget.attrs['style'] = 'width:220px; height40px;'
+             
+        self.fields['deduction_amount_3'].widget.attrs['id'] = 'deduction_amount_3'
+        self.fields['deduction_amount_3'].widget.attrs['style'] = 'width:220px; height:40px;'
+        #self.fields['deduction_amount_3'].widget.attrs['tabindex'] = 7
+        self.fields['deduction_amount_3'].widget.attrs['tabindex'] = 9
+        
+        self.fields['carryover_amount_3'].widget.attrs['id'] = 'carryover_amount_3'
+        self.fields['carryover_amount_3'].widget.attrs['style'] = 'width:220px; height:40px;'
+        #self.fields['carryover_amount_3'].widget.attrs['tabindex'] = 8
+        self.fields['carryover_amount_3'].widget.attrs['tabindex'] = 10
+        
 #ノーマルなサンプル
 #class XXXForm(ModelForm):
 #    """◯◯◯のフォーム"""

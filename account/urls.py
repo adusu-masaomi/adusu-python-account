@@ -87,6 +87,7 @@ urlpatterns = [
     url(r'^payment_reserve/del/(?P<payment_reserve_id>\d+)/$', views.views.payment_reserve_del, name='payment_reserve_del'),   # 削除
     #資金繰り表(集計)
     url(r'^cash_flow_header/$', views.views.cash_flow_header_list, name='cash_flow_header_list'),   # 一覧
+    url(r'^password_auth_5_1/$', views.views.password_auth_5_1, name = 'password_auth_5_1'),  #一覧(パスワード画面)
     url(r'^cash_flow_header/mod/(?P<cash_flow_header_id>\d+)/$', views.views.cash_flow_header_edit, name='cash_flow_header_mod'),  # 修正
     url(r'^cash_flow_header/report_1/$', views.pdf_cash_flow_list.cash_flow_list_1, name='cash_flow_list_1'),    #資金繰り表1
     url(r'^cash_flow_header/set_cash_flow_1/$', views.aggregate_cash_flow.set_cash_flow, name='set_cash_flow'),  #資金繰り見出データ作成
@@ -120,4 +121,23 @@ urlpatterns = [
     url(r'^accrued_expence/add/$', views.views.accrued_expence_edit, name='accrued_expence_add'),  # 登録
     url(r'^accrued_expence/mod/(?P<accrued_expence_id>\d+)/$', views.views.accrued_expence_edit, name='accrued_expence_mod'),  # 修正
     url(r'^accrued_expence/del/(?P<accrued_expence_id>\d+)/$', views.views.accrued_expence_del, name='accrued_expence_del'),   # 削除
+    #役員報酬
+    url(r'^compensation/$', views.views.compensation_list, name='compensation_list'),    #一覧
+    url(r'^password_auth_6_4/$', views.views.password_auth_6_4, name='password_auth_6_4'),     # 一覧(パスワード画面)
+    url('set_carryover', views.ajaxs.ajax_set_carryover, name = "set_carryover"),    #ajax
+    url(r'^compensation/add/$', views.views.compensation_edit, name='compensation_add'),  #登録
+    url(r'^compensation/mod/(?P<compensation_id>\d+)$', views.views.compensation_edit, name='compensation_mod'),  #修正
+    url(r'^compensation/del/(?P<compensation_id>\d+)$', views.views.compensation_del, name='compensation_del') ,  #削除
+    #日次役員報酬
+    url(r'^daily_compensation/$', views.views.daily_compensation_list, name='daily_compensation_list'),   #一覧
+    url(r'^password_auth_6_5/$', views.views.password_auth_6_5, name='password_auth_6_5'),      # 一覧(パスワード画面)
+    url('set_compensation/', views.ajaxs.ajax_set_compensation, name = "set_compensation"),  #ajax
+    url(r'^daily_compensation/add/$', views.views.daily_compensation_edit, name='daily_compensation_add'),
+    url(r'^daily_compensation/mod/(?P<daily_compensation_id>\d+)$', views.views.daily_compensation_edit, name='daily_compensation_mod'), #修正
+    url(r'^daily_compensation/del/(?P<daily_compensation_id>\d+)$', views.views.daily_compensation_del, name='daily_compensation_del'),   #削除
+    #代表者貸付(年次)
+    url(r'^yearly_representative_loan/$', views.views.yearly_representative_loan_list, name='yearly_representative_loan_list'),      # 一覧
+    url(r'^yearly_representative_loan/add/$', views.views.yearly_representative_loan_edit, name='yearly_representative_loan_add'),   # 登録
+    url(r'^yearly_representative_loan/mod/(?P<yearly_representative_loan_id>\d+)$', views.views.yearly_representative_loan_edit, name='yearly_representative_loan_mod'),
+    url(r'^yearly_representative_loan/del/(?P<yearly_representative_loan_id>\d+)$', views.views.yearly_representative_loan_del, name='yearly_representative_loan_del')
 ]

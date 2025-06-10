@@ -21,9 +21,11 @@ from account.models import Balance_Sheet_Tally
 from account.models import Expence
 from account.models import Deposit
 from account.models import Daily_Representative_Loan
-from account.models import Monthly_Representative_Loan  #add240502
-from account.models import Accrued_Expence  #add240727
-
+from account.models import Monthly_Representative_Loan  
+from account.models import Yearly_Representative_Loan   #add250401
+from account.models import Accrued_Expence  
+from account.models import Compensation
+from account.models import Daily_Compensation
 #
 from account.forms import PartnerForm
 from account.forms import AccountForm
@@ -39,7 +41,10 @@ from account.forms import Cash_Flow_HeaderForm
 from account.forms import Balance_SheetForm
 from account.forms import Daily_Representative_LoanForm
 from account.forms import Monthly_Representative_LoanForm
-from account.forms import Accrued_ExpenceForm  #add240729
+from account.forms import Yearly_Representative_LoanForm
+from account.forms import Accrued_ExpenceForm  
+from account.forms import CompensationForm        #add250124
+from account.forms import Daily_CompensationForm  #add250324
 
 import json 
 from itertools import chain
@@ -51,13 +56,14 @@ from django.template import RequestContext
 #from django.core.urlresolvers import reverse
 
 from account.views import aggregate_weekly as Aggregate
-from account.views import aggregate_cash_flow as Aggregate_Cash_Flow  #add200115
+from account.views import aggregate_cash_flow as Aggregate_Cash_Flow 
 from account.views import aggregate_balance_sheet as Aggregate_Balance_Sheet_Tally
-from account.views import set_cash_flow_detail as Set_Cash_Flow_Detail  #add200121
-from account.views import set_cash_book_to_balance_sheet as Set_Cash_Book_To_Balance_Sheet    #add200124
-from account.views import set_daily_cash_flow as Set_Daily_Cash_flow    #add230130
+from account.views import set_cash_flow_detail as Set_Cash_Flow_Detail  
+from account.views import set_cash_book_to_balance_sheet as Set_Cash_Book_To_Balance_Sheet  
+from account.views import set_daily_cash_flow as Set_Daily_Cash_flow    
+from account.views import set_representative_loan as Set_Representative_Loan  
 
-from account.views import set_representative_loan as Set_Representative_Loan  #add231121
+from account.views import set_compensation as Set_Compensation  #add250418
 
 from django.conf import settings
 from django.db.models import Q  
@@ -79,6 +85,8 @@ from django.db.models import Avg, Max, Min, Sum
 
 #from django.db import IntegrityError
 from django.http import HttpResponseRedirect
+
+from copy import deepcopy  #add250421
 
 #グローバル変数
 table_type_id = 0  
@@ -312,6 +320,69 @@ def password_auth_3(request):
         else:
             return render(request, 'account/index.html')
 
+#役員報酬画面
+#def password_auth_4(request):
+def password_auth_6_4(request):
+    
+    if(request.method == 'GET'):
+        
+        return render(request, 'account/password_auth_6_4.html')
+    
+    elif(request.method == 'POST'):
+    
+        username = request.POST['username']
+        password = request.POST['password']
+        
+        #ここは総務用のパスワード認証できるようにする。ベタ打ちで
+        check = False
+        if (username == "soumu" and password == "470211#"):
+            check = True
+        
+        if check:
+            
+            return HttpResponseRedirect('../compensation')
+ 
+        else:
+            return render(request, 'account/index.html')
+
+#日次役員報酬画面
+#def password_auth_2_8(request):
+def password_auth_6_5(request):
+
+    if(request.method == 'GET'):
+        return render(request, 'account/password_auth_6_5.html')
+    elif(request.method == 'POST'):
+        username = request.POST['username']
+        password = request.POST['password']
+        
+        #ここは総務用のパスワードで認証できるようにする。ベタ打ちで
+        check = False
+        if (username == "soumu" and password == "470211#"):
+            check = True
+        
+        if check:
+            return HttpResponseRedirect('../daily_compensation')
+        else:
+            return render(request, 'account/index.html')
+            
+#資金繰り
+def password_auth_5_1(request):
+    
+    if(request.method == 'GET'):
+        return render(request, 'account/password_auth_5_1.html')
+    elif(request.method == 'POST'):
+        username = request.POST['username']
+        password = request.POST['password']
+        
+        check = False
+        if (username == "soumu" and password == "470211#"):
+            check = True
+        
+        if check:
+            return HttpResponseRedirect('../cash_flow_header')
+        else:
+            return render(request, 'account/index.html')
+            
 def payment_list(request, number=None):
     """支払の一覧"""
     
@@ -1777,7 +1848,18 @@ def monthly_representative_loan_list(request):
                    'account/monthly_representative_loan_list.html',     # 使用するテンプレート
                    {'monthly_representative_loans': monthly_representative_loans})         # テンプレートに渡すデータ
     
+
+#年次貸付金の一覧
+def yearly_representative_loan_list(request):
+    """年次貸付金の一覧"""
     
+    yearly_representative_loans = Yearly_Representative_Loan.objects.all().order_by('id')
+    
+    # Your code
+    return render(request,
+                  'account/yearly_representative_loan_list.html',     # 使用するテンプレート
+                  {'yearly_representative_loans': yearly_representative_loans})         # テンプレートに渡すデータ
+
 #add240727
 def accrued_expence_list(request):
     """未払費用の一覧"""
@@ -1829,8 +1911,128 @@ def accrued_expence_list(request):
         return render(request,
                   'account/accrued_expence_list.html',     # 使用するテンプレート
                   {'accrued_expences': accrued_expences})         # テンプレートに渡すデータ
+                  
+def compensation_list(request):
+    """役員報酬の一覧"""
+    
+    #return HttpResponse('役員報酬の一覧')
+    compensations = Compensation.objects.all().order_by('id')
+    
+    #検索
+    if request.method == 'GET':
+        search_query_pay_month_from = request.GET.get('q_pay_month_from', None)
+        search_query_pay_month_to = request.GET.get('q_pay_month_to', None)
+        
+        if search_query_pay_month_from == None:
+            search_query_pay_month_from = cache.get('search_query_pay_month_from')
+        if search_query_pay_month_to == None:
+            search_query_pay_month_to = cache.get('search_query_pay_month_to')
+        
+        cache.set('search_query_pay_month_from', search_query_pay_month_from, 86400)
+        cache.set('search_query_pay_month_to', search_query_pay_month_to, 86400)
+        
+        #フィルタリング
+        results = None
+        search_flag = False
+        
+        if search_query_pay_month_from:
+            search_flag = True
+            search_query_pay_month_from += "-01"
+            
+            results = Compensation.objects.filter(payment_year_month__gte=search_query_pay_month_from)
+        if search_query_pay_month_to:
+            search_flag = True
+            search_query_pay_month_to += "-01"
+            
+            if results is None:
+                results = Compensation.objects.filter(payment_year_month__lte=search_query_pay_month_to)
+            else:
+                results = results.filter(payment_year_month__lte=search_query_pay_month_to)
+        
+        #何も検索項目のない場合は月初からの検索とする
+        if search_flag == False:
+            search_flag = True
+            
+            #
+            now_date = datetime.now()
+            first_date = now_date.replace(day=1)
+            
+            search_query_pay_month_from = first_date.strftime("%Y-%m-%d")
+            search_query_pay_month_to = first_date.strftime("%Y-%m-%d")
+            
+            results = Compensation.objects.filter(payment_year_month__gte=search_query_pay_month_from, \
+                                                  payment_year_month__lte=search_query_pay_month_to)
+        #
+                
+        if search_flag == True:
+            
+            #日付は再び年月のみにする(画面に残す為)
+            if search_query_pay_month_from:
+                search_query_pay_month_from = search_query_pay_month_from[:-3]
+            if search_query_pay_month_to:
+                search_query_pay_month_to = search_query_pay_month_to[:-3]
+            #
+        
+            return render(request,
+                  'account/compensation_list.html',     # 使用するテンプレート
+                  {'compensations': results,  
+                   'search_query_pay_month_from': search_query_pay_month_from, 
+                   'search_query_pay_month_to': search_query_pay_month_to})         # テンプレートに渡すデータ
+        else:
+    
+            return render(request,
+                  'account/compensation_list.html',     # 使用するテンプレート
+                  {'compensations': compensations})         # テンプレートに渡すデータ
 
-
+def daily_compensation_list(request):
+    """日次役員報酬の一覧"""
+    
+    daily_compensations = Daily_Compensation.objects.all().order_by('id')
+    
+    #検索
+    if request.method == 'GET':
+        search_query_paid_on_from = request.GET.get('q_paid_on_from', None)
+        
+        if search_query_paid_on_from == None:
+            search_query_paid_on_from = cache.get('search_query_paid_on_from')
+        
+        cache.set('search_query_paid_on_from', search_query_paid_on_from, 86400)
+        
+        #フィルタリング
+        results = None
+        search_flag = False
+        
+        if search_query_paid_on_from:
+            search_flag = True
+            results = Daily_Compensation.objects.filter(paid_on__gte=search_query_paid_on_from)
+        
+        #何も検索項目のない場合は月初からの検索とする
+        if search_flag == False:
+            search_flag = True
+            
+            now_date = datetime.now()
+            first_date = now_date.replace(day=1)
+            
+            search_query_paid_on_from = first_date.strftime("%Y-%m-%d")
+            
+            results = Daily_Compensation.objects.filter(paid_on__gte=search_query_paid_on_from)
+        #
+        
+        if search_flag == True:
+            
+            return render(request,
+                'account/daily_compensation_list.html',
+                {'daily_compensations': results, 
+                 'search_query_paid_on_from': search_query_paid_on_from})
+        else:
+            return render(request,
+                'account/daily_compensation_list.html',
+                {'daily_compensations':daily_compensations})
+    
+    #return render(request,
+    #            'account/daily_compensation_list.html',
+    #            {'daily_compensations':daily_compensations})
+    
 #def daterange(start_date, end_date):
 #    start_date = datetime.date.today()
 #    end_date = start_date + datetime.timedelta(days=5)
@@ -2703,11 +2905,28 @@ def monthly_representative_loan_edit(request, monthly_representative_loan_id=Non
 
     return render(request, 'account/monthly_representative_loan_edit.html', dict(form=form, monthly_representative_loan_id=monthly_representative_loan_id))
 
+def yearly_representative_loan_edit(request, yearly_representative_loan_id=None):
+    """年次貸付金の編集"""
+    if yearly_representative_loan_id:   # yearly_representative_loan_idが指定されている(修正時)
+        yearly_representative_loan = get_object_or_404(Yearly_Representative_Loan, pk=yearly_representative_loan_id)
+    else:
+        yearly_representative_loan = Yearly_Representative_Loan()
+        
+    if request.method == 'POST':
+        form = Yearly_Representative_LoanForm(request.POST, instance=yearly_representative_loan)  # POSTされたrequestデータからフォームを作成
+        if form.is_valid():    # フォームのバリデーション
+            yearly_representative_loan = form.save(commit=False)
+            yearly_representative_loan.save()
+            return redirect('account:yearly_representative_loan_list')
+    else:    #GETの時
+        form = Yearly_Representative_LoanForm(instance=yearly_representative_loan)  # インスタンスからフォームを作成
+    
+    return render(request, 'account/yearly_representative_loan_edit.html', dict(form=form, yearly_representative_loan_id=yearly_representative_loan_id))
+    
 #add240729
 def accrued_expence_edit(request, accrued_expence_id=None):
     """未払費用の編集"""
     
-    #作成中.....
     if accrued_expence_id:   # accrued_expence_id が指定されている (修正時)
         accrued_expence = get_object_or_404(Accrued_Expence, pk=accrued_expence_id)
     else:         # partner_id が指定されていない (追加時)
@@ -2723,7 +2942,64 @@ def accrued_expence_edit(request, accrued_expence_id=None):
         form = Accrued_ExpenceForm(instance=accrued_expence)  # partner インスタンスからフォームを作成
 
     return render(request, 'account/accrued_expence_edit.html', dict(form=form, accrued_expence_id=accrued_expence_id))
+
+#add250123
+def compensation_edit(request, compensation_id=None):
+    """役員報酬の編集"""
+
+    if compensation_id:    # compensation_idが指定されている（修正時）
+        compensation = get_object_or_404(Compensation, pk=compensation_id)
+    else:
+        compensation = Compensation()
     
+    if request.method == 'POST':
+        form = CompensationForm(request.POST, instance=compensation)  # compensation インスタンスからフォームを作成
+        if form.is_valid():    # フォームのバリデーション
+            compensation = form.save(commit=False)
+            compensation.save()
+            return redirect('account:compensation_list')
+    else:
+        form = CompensationForm(instance=compensation)  # compensation インスタンスからフォームを作成
+    
+    return render(request, 'account/compensation_edit.html', dict(form=form, compensation_id=compensation_id))
+
+def daily_compensation_edit(request, daily_compensation_id=None):
+    """日次役員報酬の編集"""
+    
+    if daily_compensation_id:
+        daily_compensation = get_object_or_404(Daily_Compensation, pk=daily_compensation_id)
+    else:
+        daily_compensation = Daily_Compensation()
+    
+    #作成中...
+    if request.method == 'POST':
+        #変更前保持用
+        #daily_compensation_before = daily_compensation
+        daily_compensation_before = deepcopy(daily_compensation)
+            
+            
+        form = Daily_CompensationForm(request.POST, instance=daily_compensation)  #インスタンスからフォームを作成
+        if form.is_valid():    #フォームのバリデーション
+            
+            #import pdb; pdb.set_trace()
+        
+            #daily_compensation_before = daily_compensation.objects.copy()
+            
+            daily_compensation = form.save(commit=False)
+            daily_compensation.save()
+            
+            #修正中 250418
+            #役員報酬データへも書き込み
+            Set_Compensation.set_daily_compensation_to_compensation(daily_compensation_before, 
+                                                                    daily_compensation)
+            #
+            
+            return redirect('account:daily_compensation_list')
+    else:
+        form = Daily_CompensationForm(instance=daily_compensation)
+    
+    return render(request, 'account/daily_compensation_edit.html', dict(form=form, daily_compensation_id=daily_compensation_id))
+
 ##### 削除ビュー #####
 def partner_del(request, partner_id):
     """取引先の削除"""
@@ -2927,12 +3203,30 @@ def monthly_representative_loan_del(request, monthly_representative_loan_id):
     monthly_representative_loan.delete()
     return redirect('account:monthly_representative_loan_list')
 
+def yearly_representative_loan_del(request, yearly_representative_loan_id):
+    """年次貸付金の削除"""
+    yearly_representative_loan = get_object_or_404(Yearly_Representative_Loan, pk=yearly_representative_loan_id)
+    yearly_representative_loan.delete()
+    return redirect('account:yearly_representative_loan_list')
+    
 def accrued_expence_del(request, accrued_expence_id):
     """未払費用の削除"""
     #return HttpResponse('未払費用の削除')
     accrued_expence = get_object_or_404(Accrued_Expence, pk=accrued_expence_id)
     accrued_expence.delete()
     return redirect('account:accrued_expence_list')
+
+def compensation_del(request, compensation_id):
+    """役員報酬の削除"""
+    compensation = get_object_or_404(Compensation, pk=compensation_id)
+    compensation.delete()
+    return redirect('account:compensation_list')
+
+def daily_compensation_del(request, daily_compensation_id):
+    """日次役員報酬の削除"""
+    daily_compensation = get_object_or_404(Daily_Compensation, pk=daily_compensation_id)
+    daily_compensation.delete()
+    return redirect('account:daily_compensation_list')
     
 #検索フォーム用・・・
 #def get_queryset(self):

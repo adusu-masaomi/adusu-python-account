@@ -209,6 +209,9 @@
       //保存した時、日付に１を自動セットさせる
       onClose: function(dateText, inst) { 
         $(this).datepicker('setDate', new Date(inst.selectedYear, inst.selectedMonth, 1));
+        
+        //debugger;
+        
         //次のコントロールへフォーカスを移す
         $('[tabindex=1]').focus(); 
       }

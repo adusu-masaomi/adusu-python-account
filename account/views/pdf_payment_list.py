@@ -272,6 +272,14 @@ def payment_list_1(request):
         p.drawCentredString(x*mm, y*mm, account_title)
         
         #支払金額
+        
+        #add250120
+        #１千万以上は文字を小さくする
+        if payment.billing_amount is not None and \
+           payment.billing_amount > 9999999:
+            p.setFont(font_name, 6.5)
+        ##
+        
         #x += 25
         x += (POS_TOTAL_CHAR -43)
         
@@ -293,11 +301,22 @@ def payment_list_1(request):
         if billing_amount is not None:
             p.drawRightString(x*mm, y*mm, billing_amount)
         
+        #add250120
+        #元に戻す
+        p.setFont(font_name, 7)
+        
         #if payment.billing_amount is not None:
         #    billing_amount = "￥" + str("{0:,d}".format(payment.billing_amount))  #桁区切り
         #    p.drawRightString(x*mm, y*mm, billing_amount)
         
         #概算金額
+        
+        #add250120
+        #１千万以上は文字を小さくする
+        if payment.rough_estimate is not None and \
+           payment.rough_estimate > 9999999:
+           p.setFont(font_name, 6.5)
+        
         x += POS_ROUGH_ESTIMATE_CHAR
         if payment.rough_estimate is not None:
             p.setFillColorRGB(0.5490,0.5490,0.5490) #色を指定(グレー)
@@ -308,6 +327,11 @@ def payment_list_1(request):
                 rough_estimate = "￥" + str("{0:,d}".format(payment.unpaid_amount))  #桁区切り
             p.drawRightString(x*mm, y*mm, rough_estimate)
         p.setFillColorRGB(0,0,0) #色を黒に戻す
+        
+        #add250120
+        #元に戻す
+        p.setFont(font_name, 7)
+        
         #支払方法
         x += 7
         
@@ -729,6 +753,13 @@ def payment_list_2(request):
         #小計
         i += 1 #カウンター
         if payment_method_id_saved != None and payment_method_id_saved != payment.payment_method_id:
+            #add250120
+            #１千万以上は文字を小さくする
+            if subtotal_amount is not None and \
+                subtotal_amount > 9999999:
+                p.setFont(font_name, 6.5)
+            ##
+            
             #p.setFont(font_name, 9)
             x = DETAIL_START_X + 42
             p.drawString(x*mm, y*mm, "計")
@@ -739,6 +770,10 @@ def payment_list_2(request):
             m = "￥" + str("{0:,d}".format(subtotal_amount))
             p.drawRightString(x*mm, y*mm, m)
             subtotal_amount = 0
+            
+            #add250120
+            #元に戻す
+            p.setFont(font_name, 7)
             
             #概算金額小計
             #x += POS_ROUGH_ESTIMATE_CHAR
@@ -822,6 +857,14 @@ def payment_list_2(request):
         p.drawCentredString(x*mm, y*mm, account_title)
         
         #支払金額
+        
+        #add250120
+        #１千万以上は文字を小さくする
+        if payment.billing_amount is not None and \
+           payment.billing_amount > 9999999:
+            p.setFont(font_name, 6.5)
+        ##
+        
         #x += 25
         x += (POS_TOTAL_CHAR -43)
         
@@ -829,6 +872,10 @@ def payment_list_2(request):
             billing_amount = "￥" + str("{0:,d}".format(payment.billing_amount))  #桁区切り
             #billing_amount = "{0:>11}".format(billing_amount)  #右寄せ→できない
             p.drawRightString(x*mm, y*mm, billing_amount)
+        
+        #add250120
+        #元に戻す
+        p.setFont(font_name, 7)
         
         #概算金額
           
@@ -869,11 +916,23 @@ def payment_list_2(request):
         if (payment.payment_amount is not None and payment.billing_amount is not None and \
              payment.payment_amount != billing_amount) or payment.commission is not None :
             #支払金額
+            
+            #add250120
+            #１千万以上は文字を小さくする
+            if payment.payment_amount is not None and \
+                payment.payment_amount > 9999999:
+                p.setFont(font_name, 6.5)
+            ##
+            
             x += 13
             if payment.payment_amount is not None:
                 if payment.unpaid_date is None:   #未払支払日があれば印刷しない add200514
                     payment_amount = "￥" + str("{0:,d}".format(payment.payment_amount))  #桁区切り
                     p.drawRightString(x*mm, y*mm, payment_amount)
+            #add250120
+            #元に戻す
+            p.setFont(font_name, 7)
+            
             #手数料
             x += 13
             if payment.commission is not None:
@@ -966,6 +1025,14 @@ def payment_list_2(request):
         if i == len(payments):
             
             #金額小計
+            
+            #add250120
+            #１千万以上は文字を小さくする
+            if subtotal_amount is not None and \
+                subtotal_amount > 9999999:
+                p.setFont(font_name, 6.5)
+            ##
+            
             x = DETAIL_START_X + 42
             p.drawString(x*mm, y*mm, "計")
             
@@ -973,6 +1040,10 @@ def payment_list_2(request):
             p.setFillColorRGB(0,0,188) #色を指定
             m = "￥" + str("{0:,d}".format(subtotal_amount))
             p.drawRightString(x*mm, y*mm, m)
+            
+            #add250120
+            #元に戻す
+            p.setFont(font_name, 7)
             
             #概算金額小計
             #x += POS_ROUGH_ESTIMATE_CHAR
@@ -996,9 +1067,16 @@ def payment_list_2(request):
             p.line(POS_RIGHT_SIDE*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_RIGHT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) 
             p.line(POS_LEFT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm, POS_RIGHT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #横線
             #
-             
             
             #金額合計
+            
+            #add250120
+            #１千万以上は文字を小さくする
+            if total_amount is not None and \
+                total_amount > 9999999:
+                p.setFont(font_name, 6.5)
+            ##
+            
             y += SEP_Y #Yインクリメント
             #x = DETAIL_START_X + 41
             x = DETAIL_START_X + 40.5
@@ -1009,6 +1087,8 @@ def payment_list_2(request):
             m = "￥" + str("{0:,d}".format(total_amount))
             p.drawRightString(x*mm, y*mm, m)
             
+            #元に戻す
+            p.setFont(font_name, 7)
             
             #概算金額
             #x += POS_ROUGH_ESTIMATE_CHAR

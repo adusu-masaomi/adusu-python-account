@@ -38,34 +38,38 @@ HEADER_X_TITLE = 92
 HEADER_X = 26
 
 #出納帳用 印刷位置定数
-HEADER_X_TITLE_C = 32
+HEADER_X_TITLE_C = 17      #upd250609 / 32 to 17
 #HEADER_X_ADJUST_NUM = 40  #数値の印字調整値
 #HEADER_X_ADJUST_NUM = 20  #数値の印字調整値  upd230419
 HEADER_X_ADJUST_NUM = 25  #数値の印字調整値  upd230419
 HEADER_X_TITLE_PRESIDENT = 110  #残高（社長分）
 #HEADER_X_TITLE_STAFF = 190  #残高(社員分)
 #HEADER_X_TITLE_STAFF = 250  #残高(社員分)
-HEADER_X_TITLE_STAFF = 245  #残高(社員分)
+HEADER_X_TITLE_STAFF = 245  #残高(社員分)  #upd250609 245 to 230
 HEADER_Y_C = 20
 
-POS_X_ADJUST_STR = 2     #文字の位置微調整
-POS_LEFT_SIDE_C = 20
-POS_X_SETTLEMENT = 30
-POS_X_RECEIPT = 61
-POS_X_SUBJECT = 86
-POS_X_DESCRIPTION = 116
-POS_X_DESCRIPTION_2 = 158
-#POS_X_INCOMES = 200
-POS_X_INCOMES = 225
-#POS_X_EXPENCES = 225
-POS_X_EXPENCES = 250  
+POS_X_ADJUST_STR = 2       #文字の位置微調整
+POS_LEFT_SIDE_C = 5        #upd250609 / 20 to 5
+POS_X_SETTLEMENT = 15      #upd250609 / 30 to 15
+POS_X_RECEIPT = 51         #upd250609 / 61 to 46
+POS_X_SUBJECT = 76         #upd250609 / 86 to 71
+POS_X_DESCRIPTION = 101    #upd250609 / 116 to 101
+POS_X_DESCRIPTION_2 = 143  #upd250609 / 158 to 143
+POS_X_INCOMES = 210        #upd250609 / 225 to 210
+POS_X_EXPENCES = 235       #upd250609 / 250 to 235
 #POS_X_EXPENCES_STAFF = 250 
 
 POS_X_EXPENCES_PRESIDENT = 273 
-POS_X_BALANCE = 273 #
+POS_X_BALANCE = 258        #upd250609 / 273 to 258
+
+#
+POS_X_NO_INVOICE = 279  #add250609
+POS_X_TAX_8 = 286.5     #add250609
+#
 
 POS_RIGHT_SIDE_C = 294  #
-POS_NOTE = 293          #備考(軽減税率などの場合)の場所
+POS_NOTE = 278             #備考(軽減税率などの場合)の場所
+                           #upd250609 / 293 to 278
 #####
 
 #DETAIL_START_X = 20
@@ -291,6 +295,17 @@ def list_1(request):
                 str_tmp = "￥" + str("{0:,d}".format(balance))  #桁区切り
                 p.drawRightString(x*mm, y*mm, str_tmp)
             
+            #インボイス無
+            if cash_book.is_no_invoice:
+                x = POS_X_NO_INVOICE  + STR_ADJUST + 3.25
+                p.drawRightString(x*mm, y*mm, "●")
+                
+            #税8%
+            #import pdb; pdb.set_trace()
+            if cash_book.reduced_tax_flag == 1:
+                x = POS_X_TAX_8  + STR_ADJUST + 3.25
+                p.drawRightString(x*mm, y*mm, "●")
+            
             #test 
             #add190824
             #軽減税率or10月過ぎて8%なら(あくまでも入力値により判断)記号出す
@@ -312,6 +327,10 @@ def list_1(request):
             #del230419
             #p.line(POS_X_EXPENCES_STAFF*mm, START_DETAIL_Y*mm, POS_X_EXPENCES_STAFF*mm, (START_DETAIL_Y + SEP_Y)*mm) 
             p.line(POS_X_BALANCE*mm, START_DETAIL_Y*mm, POS_X_BALANCE*mm, (START_DETAIL_Y + SEP_Y)*mm) 
+            
+            p.line(POS_X_NO_INVOICE*mm, START_DETAIL_Y*mm, POS_X_NO_INVOICE*mm, (START_DETAIL_Y + SEP_Y)*mm) 
+            p.line(POS_X_TAX_8*mm, START_DETAIL_Y*mm, POS_X_TAX_8*mm, (START_DETAIL_Y + SEP_Y)*mm) 
+            
             #
         
         ###フッター
@@ -629,7 +648,8 @@ def list_2(request):
         #支払
         subtotal_expences += expences
         total_expences += expences
-        
+                
+            
         #罫線をセット
         p.line(POS_LEFT_SIDE*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_LEFT_SIDE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) 
         p.line(POS_ACCOUNT_TITLE*mm, (y-POS_AJDUST_HEIGHT)*mm, POS_ACCOUNT_TITLE*mm, ((y-POS_AJDUST_HEIGHT) + POS_DETAIL_HEIGHT)*mm) #科目箇所の右端
@@ -747,7 +767,8 @@ def set_title_1(p,x,y):
     
     p.setFont(font_name, 9) #フォントを元にもどす
     str_page = str(page_count) + "ページ"
-    p.drawString((POS_RIGHT_SIDE_C- 22)*mm, y*mm, str_page)
+    #p.drawString((POS_RIGHT_SIDE_C- 22)*mm, y*mm, str_page)
+    p.drawString((POS_RIGHT_SIDE_C- 20)*mm, y*mm, str_page)  #UPD250609
     
     p.setFont(font_name, 12)
     
@@ -835,6 +856,14 @@ def set_title_1(p,x,y):
     str_tmp = "残高"
     p.drawString(x*mm, y*mm, str_tmp)
     
+    x = POS_X_NO_INVOICE + 1
+    #str_tmp = "N.I"
+    str_tmp = "ｲ無"
+    p.drawString(x*mm, y*mm, str_tmp)
+    
+    x = POS_X_TAX_8 + 1
+    str_tmp = "8%"
+    p.drawString(x*mm, y*mm, str_tmp)
     
     #ヘッダ部罫線
     START_DETAIL_Y = y - 4.5
@@ -851,6 +880,10 @@ def set_title_1(p,x,y):
     #del230419
     #p.line(POS_X_EXPENCES_STAFF*mm, START_DETAIL_Y*mm, POS_X_EXPENCES_STAFF*mm, (START_DETAIL_Y + SEP_Y)*mm) 
     p.line(POS_X_BALANCE*mm, START_DETAIL_Y*mm, POS_X_BALANCE*mm, (START_DETAIL_Y + SEP_Y)*mm) 
+    
+    
+    p.line(POS_X_NO_INVOICE*mm, START_DETAIL_Y*mm, POS_X_NO_INVOICE*mm, (START_DETAIL_Y + SEP_Y)*mm) 
+    p.line(POS_X_TAX_8*mm, START_DETAIL_Y*mm, POS_X_TAX_8*mm, (START_DETAIL_Y + SEP_Y)*mm) 
     #
     
     ####

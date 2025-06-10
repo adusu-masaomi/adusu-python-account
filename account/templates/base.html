@@ -98,7 +98,7 @@ body > .container {
                     <ul class="nav navbar-nav">
                         <li class="dropdown">
                           <a href="#" class="dropdown-toggle" data-toggle="dropdown">マスター管理<b class="caret"></b></a>
-						  <ul class="dropdown-menu">
+                          <ul class="dropdown-menu">
                             <!--<li><a href="{% url 'account:partner_list' %}">取引先マスター管理</a></li>-->
                             <li><a href="{% url 'account:password_auth_2' %}">取引先マスター管理</a></li>
                             <li><a href="{% url 'account:account_title_list' %}">勘定科目マスター管理</a></li>
@@ -107,41 +107,51 @@ body > .container {
                             <li><a href="{% url 'account:account_list' %}">勘定科目マスター(貸借用)</a></li>
                             <li><a href="{% url 'account:account_sub_list' %}">勘定科目補助(貸借用)</a></li>
                           </ul>
-						</li>
-						<li class="dropdown">
+                        </li>
+                        <li class="dropdown">
                           <a href="#" class="dropdown-toggle" data-toggle="dropdown">支払管理<b class="caret"></b></a>
-						  <ul class="dropdown-menu">
+                          <ul class="dropdown-menu">
                             <!--<li><a href="{% url 'account:payment_list' %}">支払データ管理</a></li>-->
                             <li><a href="{% url 'account:password_auth_1' %}">支払データ管理</a></li>
                             <li><a href="{% url 'account:balance_sheet_list' %}">貸借データ管理</a></li>
-                            <li><a href="{% url 'account:daily_representative_loan_list' %}">貸付金データ管理</a></li>
-                            <li><a href="{% url 'account:monthly_representative_loan_list' %}">月次貸付金管理</a></li>
                             <li><a href="{% url 'account:accrued_expence_list' %}">未払費用データ管理</a></li>
                             <!--<li><a href="{% url 'account:password_auth_3' %}">未払費用データ管理</a></li>-->
                             <li><a href="{% url 'account:cash_flow_detail_expected_list' %}">資金繰(予)管理</a></li>
                             <li><a href="{% url 'account:cash_flow_detail_actual_list' %}">資金繰(実)管理</a></li>
                           </ul>
-						</li>
+                        </li>
                         <li class="dropdown">
                           <a href="#" class="dropdown-toggle" data-toggle="dropdown">出納帳管理<b class="caret"></b></a>
-						  <ul class="dropdown-menu">
+                          <ul class="dropdown-menu">
                             <li><a href="{% url 'account:cash_book_list' %}">出納帳データ管理</a></li>
                             <li><a href="{% url 'account:cash_book_weekly_list' %}">週末データ管理</a></li>
-						  </ul>
-						</li>
+                          </ul>
+                        </li>
                         <li class="dropdown">
                           <a href="#" class="dropdown-toggle" data-toggle="dropdown">予約管理<b class="caret"></b></a>
-						  <ul class="dropdown-menu">
+                          <ul class="dropdown-menu">
                             <li><a href="{% url 'account:payment_reserve_list' %}">支払予約データ管理</a></li>
-						  </ul>
-						</li>
+                          </ul>
+                        </li>
                         <li class="dropdown">
                           <a href="#" class="dropdown-toggle" data-toggle="dropdown">資金管理<b class="caret"></b></a>
-						  <ul class="dropdown-menu">
-                            <li><a href="{% url 'account:cash_flow_header_list' %}">資金繰り表</a></li>
+                          <ul class="dropdown-menu">
+                            <!--<li><a href="{% url 'account:cash_flow_header_list' %}">資金繰り表</a></li>-->
+                            <li><a href="{% url 'account:password_auth_5_1' %}">資金繰り表</a></li>
                             <li><a href="{% url 'account:balance_sheet_tally_list' %}">貸借表</a></li>
                           </ul>
-						</li>
+                        </li>
+                        <li class="dropdown">
+                          <a href="#" class="dropdown-toggle" data-toggle="dropdown">メンテナンス<b class="caret"></b></a>
+                          <ul class="dropdown-menu">
+                            <li><a href="{% url 'account:daily_representative_loan_list' %}">daily_representative_loan</a></li>
+                            <li><a href="{% url 'account:monthly_representative_loan_list' %}">monthly_reppresentative_loan</a></li>
+                            <li><a href="{% url 'account:yearly_representative_loan_list' %}">yearly_representative_loan</a></li>
+                            <li>---------------</li>
+                            <li><a href="{% url 'account:password_auth_6_4' %}">compensation</a></li>
+                            <li><a href="{% url 'account:password_auth_6_5' %}">daily_compensation</a></li>
+                          </ul>
+                        </li>
                         <!--<li><a href="#about">About</a></li>-->
                         <!--<li><a href="#github">Github</a></li>-->
                         <!--<li><a href="http://tmlife.net">Blog</a></li>-->

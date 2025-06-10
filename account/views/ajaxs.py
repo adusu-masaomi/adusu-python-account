@@ -10,6 +10,8 @@ from account.models import Bank
 from account.models import Bank_Branch
 from account.models import Payment
 from account.models import Cash_Book
+from account.models import Compensation         #add250407
+from account.models import Daily_Compensation   #add250423
 
 from django.conf import settings
 import json 
@@ -21,6 +23,9 @@ from django.http import Http404, HttpResponse, QueryDict
 import json
 from django.http.response import JsonResponse
 from django.template import RequestContext
+
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 #centos7でインストール不可のため、削除 220218
 #from sklearn.externals import joblib
@@ -241,3 +246,354 @@ def ajax_cash_book_predict_account_tile(req):
         #json_data = json.dumps({"HTTPRESPONSE":response})   # JSON形式に直す
         #return HttpResponse(json_data, content_type="application/json")
         return 0
+
+#役員報酬への振り分け
+def ajax_set_compensation(request):
+    
+    if request.method == 'GET':
+        
+        paid_on_str = request.GET['paid_on']
+        daily_amount = request.GET['amount']
+        id = request.GET['id']
+        
+        if daily_amount is not None:
+            daily_amount = int(daily_amount)
+        else:
+            daily_amount = 0
+        
+        #変更前後比較？
+        is_update = False
+        differ_amount = 0
+        differ_paid_amount = 0
+        daily_compensation_before = None
+        
+        #
+        deduction_amount_1 = 0
+        deduction_amount_2 = 0
+        deduction_amount_3 = 0
+        
+        carryover_amount_1 = 0
+        carryover_amount_2 = 0
+        carryover_amount_3 = 0
+        #
+        
+        #if id is not None:
+        if id is not None and id != "None":
+            
+            daily_compensation_before = Daily_Compensation.objects.filter(pk=id).first()
+            if daily_compensation_before is not None:
+                
+                if daily_amount != daily_compensation_before.amount:
+                    is_update = True
+                    
+                    differ_amount = daily_amount - daily_compensation_before.amount
+                    
+                    deduction_amount_1 = daily_compensation_before.deduction_amount_1
+                    deduction_amount_2 = daily_compensation_before.deduction_amount_2
+                    deduction_amount_3 = daily_compensation_before.deduction_amount_3
+                    
+                    carryover_amount_1 = daily_compensation_before.carryover_amount_1
+                    carryover_amount_2 = daily_compensation_before.carryover_amount_2
+                    carryover_amount_3 = daily_compensation_before.carryover_amount_3
+                    
+                #daily_amount = differ_amount
+        #import pdb; pdb.set_trace()
+        ##
+        
+    #３ヶ月前まで見る
+        #import pdb; pdb.set_trace()
+        paid_on = datetime.strptime(paid_on_str, '%Y-%m-%d')
+        
+        paid_on_month = paid_on.month
+        paid_on_day = paid_on.day
+        
+        #import pdb; pdb.set_trace()
+        start_date = datetime.now()
+        
+        next_date = datetime.now()  #次月
+        
+        if paid_on_day > 20:
+            
+            start_date = paid_on + relativedelta(months=-2)
+            end_date = paid_on
+            
+            next_date = paid_on + relativedelta(months=+1)
+        else:
+            #通常(20日以前)
+            #開始月=3ヶ月前、終了月1ヶ月前とする
+            start_date = paid_on + relativedelta(months=-3)
+            end_date = paid_on + relativedelta(months=-1)
+            
+            next_date = paid_on
+            
+        start_date = start_date.replace(day=1)
+        end_date = end_date.replace(day=1)
+        
+        next_date = next_date.replace(day=1)
+        
+        #３ヶ月前までループしデータ見る
+        #payment_reserves = Payment_Reserve.objects.all().filter(billing_year_month=assigned_date)
+        compensations = Compensation.objects.filter(payment_year_month__gte=start_date, \
+                                                    payment_year_month__lte=end_date).order_by('payment_year_month')
+                
+        
+        paid_count = 0
+        
+        paid_amount = []
+        carryover_amount = []
+        paid_on = []
+        
+        tmp_amount = 0
+        cnt = 0
+        total_cnt = 0
+        completed_cnt = 0
+        inherit_amount = 0
+        
+        #for payment_reserve in payment_reserves:
+        for compensation in compensations: 
+            if compensation.is_completed is not 1:
+                cnt += 1
+                total_cnt += 1
+                
+                #引き継ぎ金額
+                if cnt == 1:
+                    inherit_amount = daily_amount
+                
+                #更新の場合の設定
+                if is_update:
+                    damount = 0
+                    camount = 0
+                    if total_cnt == 1:
+                        damount = deduction_amount_1
+                        camount = carryover_amount_1
+                    elif total_cnt == 2:
+                        damount = deduction_amount_2
+                        camount = carryover_amount_2
+                    else:
+                        damount = deduction_amount_3
+                        camount = carryover_amount_3
+                #
+                
+                
+                if inherit_amount > 0:
+                
+                    if compensation.paid_amount is None or compensation.paid_amount == 0:
+                    
+                        if compensation.amount >= inherit_amount:
+                            #元の報酬からそのまま引く
+                            #tmp_amount = compensation.amount - inherit_amount
+                            tmp_amount = inherit_amount
+                            inherit_amount = 0
+                        else:
+                            #日次金額が大きい場合
+                            tmp_amount = compensation.amount
+                            inherit_amount = inherit_amount - compensation.amount
+                        
+                        #多い場合、翌月へ持ち越し？
+                        #import pdb; pdb.set_trace()
+                        #
+                    
+                        #if cnt == 1:  #test
+                        paid_amount.append(tmp_amount)
+                        carryover_amount.append(inherit_amount)
+                        paid_on.append(compensation.payment_year_month)
+                
+                    else:
+                        #支払済の有る場合
+                        
+                        if is_update == False:
+                            
+                            rest_pay_amount = compensation.amount - compensation.paid_amount 
+                    
+                            #if rest_amount >= daily_amount:
+                            if rest_pay_amount >= inherit_amount:
+                                #支払残り金額が日次金額以上
+                    
+                                #支払分を算出
+                                #tmp_amount = rest_pay_amount - inherit_amount
+                                tmp_amount = inherit_amount
+                                inherit_amount = 0
+                            else:
+                                #残り金額が日次金額より下
+                                #tmp_tmp_amount = inherit_amount - rest_pay_amount
+                        
+                                #rest_paid_amount = tmp_tmp_amount + rest_pay_amount
+                                rest_paid_amount = inherit_amount
+                        
+                                tmp_amount = rest_pay_amount
+                                inherit_amount -= rest_pay_amount
+                                
+                            
+                            paid_amount.append(tmp_amount)
+                            carryover_amount.append(inherit_amount)
+                            paid_on.append(compensation.payment_year_month)
+                        else:
+                            #更新の場合
+                            #修正中 250423....
+                            
+                            rest_pay_amount = compensation.amount - inherit_amount
+                            coamount = 0
+                            
+                            #if rest_pay_amount >= inherit_amount:
+                            if compensation.amount >= inherit_amount:
+                                #未検証
+                                tmp_amount = inherit_amount
+                                #coamount = 0
+                            else:
+                                tmp_amount = compensation.amount
+                                #inherit_amount -= rest_pay_amount
+                                coamount -= rest_pay_amount
+                            paid_amount.append(tmp_amount)
+                            #carryover_amount.append(inherit_amount)
+                            carryover_amount.append(coamount)
+                            paid_on.append(compensation.payment_year_month)
+                            
+                    #tmp_amout = compensation.paid_amount + daily_amount
+            else:
+                #支払済でも、繰り越すケースも有
+                
+                #import pdb; pdb.set_trace()
+                
+                completed_cnt += 1
+                
+                if completed_cnt == len(compensations):
+                    
+                    total_cnt += 1
+                    
+                    if is_update == False:
+                        #import pdb; pdb.set_trace()
+                        
+                        paid_amount.append(0)
+                        inherit_amount = daily_amount
+                        #paid_amount.append(inherit_amount)
+                    
+                        carryover_amount.append(inherit_amount)
+                        #restore 250428
+                        #carryover_amount.append(0)
+                        
+                        paid_on.append(next_date)
+                        
+                        #250425
+                        #データ有無のチェックも必要?
+                        
+                    else:
+                    #訂正の場合
+                        damount = 0
+                        camount = 0
+                        
+                        if total_cnt == 1:
+                            damount = deduction_amount_1
+                            camount = carryover_amount_1
+                        elif total_cnt == 2:
+                            damount = deduction_amount_2
+                            camount = carryover_amount_2
+                        else:
+                            damount = deduction_amount_3
+                            camount = carryover_amount_3
+                        
+                        #import pdb; pdb.set_trace()
+                        
+                        if camount == 0 or camount is None:
+                            if compensation.is_completed != 1:
+                                damount += differ_amount
+                            else:
+                                camount += differ_amount
+                        else:
+                            camount += differ_amount
+                        
+                        paid_amount.append(damount)
+                        carryover_amount.append(camount)
+                        
+                        #paid_on.append(next_date)  #???
+                        paid_on.append(compensation.payment_year_month)
+                
+                
+        #import pdb; pdb.set_trace()
+        #json用のリストへセット
+        amount_length = len(paid_amount)
+        json_amount = []
+        json_carryover_amount = []
+        json_date = []
+        
+        if amount_length == 3:
+            json_amount = [paid_amount[0], paid_amount[1], paid_amount[2]]
+        elif amount_length == 2:
+            json_amount = [paid_amount[0], paid_amount[1], 0]
+        else:
+            json_amount = [paid_amount[0], 0, 0]
+        #
+        
+        #繰越金額
+        #json_carryover_amount = [0, 0, 0]
+        carryover_amount_length = len(carryover_amount)
+           
+        if carryover_amount_length == 3:
+            #json_carryover_amount = [carryover_amount[0], carryover_amount[1], carryover_amount[2]]
+            json_carryover_amount = [0, 0, carryover_amount[2]]
+        elif carryover_amount_length == 2:
+            #json_carryover_amount = [carryover_amount[0], carryover_amount[1], 0]
+            json_carryover_amount = [0, carryover_amount[1], 0]
+        else:
+            json_carryover_amount = [carryover_amount[0], 0, 0]
+        #
+        
+        paid_on_length = len(paid_on)
+        
+        if paid_on_length == 3:
+            json_date = [paid_on[0], paid_on[1], paid_on[2]]
+        elif paid_on_length == 2:
+            json_date = [paid_on[0], paid_on[1], 0]
+        else:
+            json_date = [paid_on[0], 0, 0]
+        
+        #戻り値
+        response = [json_amount[0], json_amount[1], json_amount[2], \
+                    json_carryover_amount[0], json_carryover_amount[1], json_carryover_amount[2], \
+                    json_date[0], json_date[1], json_date[2]]
+                    #json_date[0], json_date[1], json_date[2]]
+        
+        
+        json_data = json.dumps({"HTTPRESPONSE":response}, default=str)   # JSON形式に直す
+        #json_data = json.dumps(response, dafault=str)   # JSON形式に直す
+        return HttpResponse(json_data, content_type="application/json")
+        
+    #return render(request, 'account/daily_compensation_edit.html', \
+    #       dict(form=form, daily_compensation_id=daily_compensation_id))
+    else:
+        return None
+    #test
+
+def ajax_set_carryover(request):
+    
+    #import pdb; pdb.set_trace()
+    
+    if request.method == 'GET':
+        
+        paid_on_str = request.GET['paid_on']
+        paid_on_str = paid_on_str + "-1"  #１日を加える
+        paid_on = datetime.strptime(paid_on_str, '%Y-%m-%d')
+        
+        
+        #先月の繰越金があるか確認
+        
+        last_month = paid_on + relativedelta(months=-1)
+        #last_compensation = Compensation.objects.filter(payment_year_month=last_month)
+        try:
+            last_compensation = Compensation.objects.get(payment_year_month=last_month)
+        except Compensation.DoesNotExist:
+            last_compensation = None
+        
+        carryover_amount = 0
+        
+        #import pdb; pdb.set_trace()
+        
+        if last_compensation is not None:
+            if last_compensation.carryover_amount > 0:
+                carryover_amount = last_compensation.carryover_amount
+                #
+                
+        response = [carryover_amount]
+        json_data = json.dumps({"HTTPRESPONSE":response}, default=str)  #JSON形式に直す
+        return HttpResponse(json_data, content_type="appliation_json")       
+    else:
+        return None
